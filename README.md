@@ -15,9 +15,9 @@ Ensure you have Go installed on your system.
 Clone the repository and build the binary:
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/EmiraLabs/stw-cli.git
 cd stw-cli
-go build -o stw main.go
+go build -o stw ./cmd/stw
 ```
 
 ## Usage
