@@ -13,6 +13,8 @@ type FileSystem interface {
 	Create(filename string) (io.WriteCloser, error)
 	MkdirAll(path string, perm fs.FileMode) error
 	RemoveAll(path string) error
+	WriteFile(filename string, data []byte, perm fs.FileMode) error
+	Stat(filename string) (fs.FileInfo, error)
 }
 
 // TemplateRenderer defines the interface for template rendering

@@ -8,6 +8,7 @@ A simple static website generator and server CLI tool written in Go.
 - Serve the built site locally
 - Copy static assets automatically
 - Auto-reload browser when files change during development
+- Initialize project with Tailwind CSS, PostCSS, and Autoprefixer
 
 ## Installation
 
@@ -23,13 +24,21 @@ go build -o stw ./cmd/stw
 
 ## Usage
 
+### Initialize project with Tailwind CSS
+
+```bash
+./stw init --tailwind
+```
+
+This sets up Tailwind CSS, PostCSS, and Autoprefixer for your project, installing the necessary Node.js dependencies.
+
 ### Build the site
 
 ```bash
-./stw -build
+./stw build
 ```
 
-This will generate the site in the `dist` directory.
+This will generate the site in the `dist` directory. If PostCSS configuration is present, CSS files will be processed.
 
 ### Serve the site
 

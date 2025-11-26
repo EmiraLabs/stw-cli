@@ -34,3 +34,13 @@ func (fs *OSFileSystem) MkdirAll(path string, perm fs.FileMode) error {
 func (fs *OSFileSystem) RemoveAll(path string) error {
 	return os.RemoveAll(path)
 }
+
+// WriteFile writes data to a file named by filename
+func (fs *OSFileSystem) WriteFile(filename string, data []byte, perm fs.FileMode) error {
+	return os.WriteFile(filename, data, perm)
+}
+
+// Stat returns a FileInfo describing the named file
+func (fs *OSFileSystem) Stat(filename string) (fs.FileInfo, error) {
+	return os.Stat(filename)
+}

@@ -3,6 +3,7 @@ package application
 import (
 	"html/template"
 	"io/fs"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -106,6 +107,9 @@ func (sb *SiteBuilder) copyAssets() error {
 		if d.IsDir() {
 			return sb.fs.MkdirAll(target, 0755)
 		}
+		if strings.HasSuffix(path, "styles.css") {
+			return sb.processCSS(path, target)
+		}
 		return sb.copyFile(path, target)
 	})
 }
@@ -122,4 +126,19 @@ func (sb *SiteBuilder) copyFile(src, dst string) error {
 	defer f.Close()
 	_, err = f.Write(content)
 	return err
+}
+
+func (sb *SiteBuilder) processCSS(src, dst string) error {
+	// Check if postcss.config.js exists
+	if _, err := sb.fs.Stat("postcss.config.js"); err != nil {
+		// If not, just copy
+		return sb.copyFile(src, dst)
+	}
+	// Ensure target dir exists
+	if err := sb.fs.MkdirAll(filepath.Dir(dst), 0755); err != nil {
+		return err
+	}
+	// Run postcss
+	cmd := exec.Command("./node_modules/.bin/postcss", src, "-o", dst)
+	return cmd.Run()
 }

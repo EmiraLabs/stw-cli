@@ -1,6 +1,13 @@
+.DS_Store
 stw
 assets
 pages
 templates
 dist
 coverage.out
+node_modules
+
+package-lock.json
+package.json
+postcss.config.js
+tailwind.config.js

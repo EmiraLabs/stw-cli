@@ -66,11 +66,32 @@ func main() {
 		},
 	}
 
+	var initCmd = &cobra.Command{
+		Use:   "init",
+		Short: "Initialize the project with optional features",
+		Run: func(cmd *cobra.Command, args []string) {
+			tailwind, _ := cmd.Flags().GetBool("tailwind")
+
+			fs := &infrastructure.OSFileSystem{}
+
+			initializer := application.NewSiteInitializer(fs)
+
+			if tailwind {
+				if err := initializer.InitTailwind(); err != nil {
+					log.Fatal(err)
+				}
+			}
+		},
+	}
+
+	initCmd.Flags().Bool("tailwind", false, "Initialize with Tailwind CSS setup")
+
 	serveCmd.Flags().StringP("port", "p", "8080", "Port to serve on")
 	serveCmd.Flags().BoolP("watch", "w", true, "Enable auto-reload on file changes")
 
 	rootCmd.AddCommand(buildCmd)
 	rootCmd.AddCommand(serveCmd)
+	rootCmd.AddCommand(initCmd)
 
 	if err := rootCmd.Execute(); err != nil {
 		log.Fatal(err)

@@ -6,9 +6,11 @@ import (
 	"html/template"
 	"io"
 	"io/fs"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/EmiraLabs/stw-cli/internal/domain"
 )
@@ -118,6 +120,21 @@ func (m *MockFileSystem) RemoveAll(path string) error {
 	return nil
 }
 
+func (m *MockFileSystem) WriteFile(filename string, data []byte, perm fs.FileMode) error {
+	m.files[filename] = data
+	return nil
+}
+
+func (m *MockFileSystem) Stat(filename string) (fs.FileInfo, error) {
+	if _, ok := m.files[filename]; ok {
+		return &mockFileInfo{name: filepath.Base(filename)}, nil
+	}
+	if m.dirs[filename] {
+		return &mockFileInfo{name: filepath.Base(filename), isDir: true}, nil
+	}
+	return nil, os.ErrNotExist
+}
+
 type mockDirEntry struct {
 	name  string
 	isDir bool
@@ -127,6 +144,18 @@ func (m *mockDirEntry) Name() string               { return m.name }
 func (m *mockDirEntry) IsDir() bool                { return m.isDir }
 func (m *mockDirEntry) Type() fs.FileMode          { return 0 }
 func (m *mockDirEntry) Info() (fs.FileInfo, error) { return nil, nil }
+
+type mockFileInfo struct {
+	name  string
+	isDir bool
+}
+
+func (m *mockFileInfo) Name() string       { return m.name }
+func (m *mockFileInfo) Size() int64        { return 0 }
+func (m *mockFileInfo) Mode() fs.FileMode  { return 0644 }
+func (m *mockFileInfo) ModTime() time.Time { return time.Now() }
+func (m *mockFileInfo) IsDir() bool        { return m.isDir }
+func (m *mockFileInfo) Sys() interface{}   { return nil }
 
 type mockWriteCloser struct {
 	buffer *bytes.Buffer
