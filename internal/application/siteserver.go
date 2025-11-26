@@ -26,14 +26,16 @@ type SiteServer struct {
 	site    *domain.Site
 	builder SiteBuilderInterface
 	server  HTTPServerInterface
+	port    string
 }
 
 // NewSiteServer creates a new SiteServer
-func NewSiteServer(site *domain.Site, builder SiteBuilderInterface) *SiteServer {
+func NewSiteServer(site *domain.Site, builder SiteBuilderInterface, port string) *SiteServer {
 	return &SiteServer{
 		site:    site,
 		builder: builder,
 		server:  &DefaultHTTPServer{},
+		port:    port,
 	}
 }
 
@@ -43,6 +45,6 @@ func (ss *SiteServer) Serve() error {
 		return err
 	}
 	fs := http.FileServer(http.Dir(ss.site.DistDir))
-	log.Printf("Serving %s on http://localhost:8001", ss.site.DistDir)
-	return ss.server.ListenAndServe(":8001", fs)
+	log.Printf("Serving %s on http://localhost:%s", ss.site.DistDir, ss.port)
+	return ss.server.ListenAndServe(":"+ss.port, fs)
 }
