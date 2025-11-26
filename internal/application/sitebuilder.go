@@ -1,6 +1,7 @@
 package application
 
 import (
+	"bytes"
 	"html/template"
 	"io/fs"
 	"path/filepath"
@@ -81,7 +82,34 @@ func (sb *SiteBuilder) buildPages(tmpl *template.Template) error {
 			if err != nil {
 				return err
 			}
-			page := domain.Page{Title: title, Content: template.HTML(content), Path: rel, IsDev: sb.site.EnableAutoReload}
+
+			// Parse page content as template
+			pageTmpl, err := template.New("page").Parse(string(content))
+			if err != nil {
+				return err
+			}
+
+			// Create page data without Content
+			pageData := domain.Page{
+				Title:  title,
+				Path:   rel,
+				IsDev:  sb.site.EnableAutoReload,
+				Config: sb.site.Config,
+			}
+
+			// Execute page template
+			var buf bytes.Buffer
+			if err := pageTmpl.Execute(&buf, pageData); err != nil {
+				return err
+			}
+
+			page := domain.Page{
+				Title:   title,
+				Content: template.HTML(buf.String()),
+				Path:    rel,
+				IsDev:   sb.site.EnableAutoReload,
+				Config:  sb.site.Config,
+			}
 
 			f, err := sb.fs.Create(dst)
 			if err != nil {

@@ -8,9 +8,32 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/EmiraLabs/stw-cli/internal/domain"
+	"html/template"
+
 	"github.com/fsnotify/fsnotify"
+	"gopkg.in/yaml.v3"
+
+	"github.com/EmiraLabs/stw-cli/internal/domain"
 )
+
+func convertToHTML(data interface{}) interface{} {
+	switch v := data.(type) {
+	case string:
+		return template.HTML(v)
+	case map[string]interface{}:
+		for key, val := range v {
+			v[key] = convertToHTML(val)
+		}
+		return v
+	case []interface{}:
+		for i, val := range v {
+			v[i] = convertToHTML(val)
+		}
+		return v
+	default:
+		return v
+	}
+}
 
 type SiteBuilderInterface interface {
 	Build() error
@@ -47,6 +70,23 @@ func NewSiteServer(site *domain.Site, builder SiteBuilderInterface, port string)
 		reloadCh: make(chan struct{}, 1),
 		clients:  make(map[http.ResponseWriter]bool),
 	}
+}
+
+func (ss *SiteServer) reloadConfig() error {
+	data, err := os.ReadFile(ss.site.ConfigPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			ss.site.Config = map[string]interface{}{}
+			return nil
+		}
+		return err
+	}
+	var config map[string]interface{}
+	if err := yaml.Unmarshal(data, &config); err != nil {
+		return err
+	}
+	ss.site.Config = convertToHTML(config).(map[string]interface{})
+	return nil
 }
 
 // Serve builds and serves the site
@@ -151,6 +191,13 @@ func (ss *SiteServer) initWatcher() (*fsnotify.Watcher, error) {
 		}
 	}
 
+	// Watch config file
+	if _, err := os.Stat(ss.site.ConfigPath); err == nil {
+		if err := watcher.Add(ss.site.ConfigPath); err != nil {
+			log.Printf("Error watching %s: %v", ss.site.ConfigPath, err)
+		}
+	}
+
 	return watcher, nil
 }
 
@@ -160,6 +207,17 @@ func (ss *SiteServer) handleFileEvent(event fsnotify.Event, watcher *fsnotify.Wa
 		if event.Has(fsnotify.Create) {
 			if info, err := os.Stat(event.Name); err == nil && info.IsDir() {
 				watcher.Add(event.Name)
+			}
+			// If config file is created, add it to watch
+			if event.Name == ss.site.ConfigPath {
+				watcher.Add(event.Name)
+			}
+		}
+		// If config file changed, reload config
+		if event.Name == ss.site.ConfigPath {
+			if err := ss.reloadConfig(); err != nil {
+				log.Printf("Config reload error: %v", err)
+				return
 			}
 		}
 		log.Printf("File changed: %s", event.Name)
