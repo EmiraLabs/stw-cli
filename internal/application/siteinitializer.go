@@ -1,6 +1,8 @@
 package application
 
 import (
+	"fmt"
+	"os"
 	"os/exec"
 
 	"github.com/EmiraLabs/stw-cli/internal/infrastructure"
@@ -70,6 +72,9 @@ func (si *SiteInitializer) InitTailwind() error {
 	}
 
 	// Run npm install
+	fmt.Println("Installing Node.js dependencies...")
 	cmd := exec.Command("npm", "install")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	return cmd.Run()
 }

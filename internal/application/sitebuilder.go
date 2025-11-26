@@ -1,8 +1,10 @@
 package application
 
 import (
+	"fmt"
 	"html/template"
 	"io/fs"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -139,6 +141,9 @@ func (sb *SiteBuilder) processCSS(src, dst string) error {
 		return err
 	}
 	// Run postcss
+	fmt.Println("Processing CSS with PostCSS...")
 	cmd := exec.Command("./node_modules/.bin/postcss", src, "-o", dst)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	return cmd.Run()
 }
