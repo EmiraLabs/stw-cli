@@ -55,12 +55,16 @@ func (ss *SiteServer) Serve() error {
 		return err
 	}
 
-	// Start file watcher
-	go ss.watchFiles()
+	// Start file watcher if enabled
+	if ss.site.EnableAutoReload {
+		go ss.watchFiles()
+	}
 
 	// Custom handler
 	mux := http.NewServeMux()
-	mux.HandleFunc("/__reload", ss.handleReload)
+	if ss.site.EnableAutoReload {
+		mux.HandleFunc("/__reload", ss.handleReload)
+	}
 	mux.Handle("/", http.FileServer(http.Dir(ss.site.DistDir)))
 
 	log.Printf("Serving %s on http://localhost:%s", ss.site.DistDir, ss.port)

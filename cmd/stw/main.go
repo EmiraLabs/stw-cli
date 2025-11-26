@@ -21,11 +21,11 @@ func main() {
 		Short: "Build the static site",
 		Run: func(cmd *cobra.Command, args []string) {
 			site := &domain.Site{
-				PagesDir:     "pages",
-				TemplatesDir: "templates",
-				AssetsDir:    "assets",
-				DistDir:      "dist",
-				IsDev:        false,
+				PagesDir:         "pages",
+				TemplatesDir:     "templates",
+				AssetsDir:        "assets",
+				DistDir:          "dist",
+				EnableAutoReload: false,
 			}
 
 			fs := &infrastructure.OSFileSystem{}
@@ -44,13 +44,14 @@ func main() {
 		Short: "Build and serve the static site",
 		Run: func(cmd *cobra.Command, args []string) {
 			port, _ := cmd.Flags().GetString("port")
+			watch, _ := cmd.Flags().GetBool("watch")
 
 			site := &domain.Site{
-				PagesDir:     "pages",
-				TemplatesDir: "templates",
-				AssetsDir:    "assets",
-				DistDir:      "dist",
-				IsDev:        true,
+				PagesDir:         "pages",
+				TemplatesDir:     "templates",
+				AssetsDir:        "assets",
+				DistDir:          "dist",
+				EnableAutoReload: watch,
 			}
 
 			fs := &infrastructure.OSFileSystem{}
@@ -66,6 +67,7 @@ func main() {
 	}
 
 	serveCmd.Flags().StringP("port", "p", "8080", "Port to serve on")
+	serveCmd.Flags().BoolP("watch", "w", true, "Enable auto-reload on file changes")
 
 	rootCmd.AddCommand(buildCmd)
 	rootCmd.AddCommand(serveCmd)
