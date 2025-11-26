@@ -104,11 +104,33 @@ func (ss *SiteServer) handleReload(w http.ResponseWriter, r *http.Request) {
 }
 
 func (ss *SiteServer) watchFiles() {
-	watcher, err := fsnotify.NewWatcher()
+	watcher, err := ss.initWatcher()
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer watcher.Close()
+
+	for {
+		select {
+		case event, ok := <-watcher.Events:
+			if !ok {
+				return
+			}
+			ss.handleFileEvent(event, watcher)
+		case err, ok := <-watcher.Errors:
+			if !ok {
+				return
+			}
+			log.Printf("Watcher error: %v", err)
+		}
+	}
+}
+
+func (ss *SiteServer) initWatcher() (*fsnotify.Watcher, error) {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		return nil, err
+	}
 
 	addDir := func(path string) error {
 		return filepath.WalkDir(path, func(p string, d fs.DirEntry, err error) error {
@@ -129,41 +151,36 @@ func (ss *SiteServer) watchFiles() {
 		}
 	}
 
-	for {
-		select {
-		case event, ok := <-watcher.Events:
-			if !ok {
-				return
+	return watcher, nil
+}
+
+func (ss *SiteServer) handleFileEvent(event fsnotify.Event, watcher *fsnotify.Watcher) {
+	if event.Has(fsnotify.Write) || event.Has(fsnotify.Create) || event.Has(fsnotify.Remove) {
+		// If a directory is created, add it to watch
+		if event.Has(fsnotify.Create) {
+			if info, err := os.Stat(event.Name); err == nil && info.IsDir() {
+				watcher.Add(event.Name)
 			}
-			if event.Has(fsnotify.Write) || event.Has(fsnotify.Create) || event.Has(fsnotify.Remove) {
-				// If a directory is created, add it to watch
-				if event.Has(fsnotify.Create) {
-					if info, err := os.Stat(event.Name); err == nil && info.IsDir() {
-						watcher.Add(event.Name)
-					}
-				}
-				log.Printf("File changed: %s", event.Name)
-				if err := ss.builder.Build(); err != nil {
-					log.Printf("Build error: %v", err)
-				} else {
-					// Notify clients
-					ss.clientsMu.Lock()
-					log.Printf("Notifying %d clients", len(ss.clients))
-					for client := range ss.clients {
-						if _, err := client.Write([]byte("data: reload\n\n")); err != nil {
-							delete(ss.clients, client)
-						} else {
-							client.(http.Flusher).Flush()
-						}
-					}
-					ss.clientsMu.Unlock()
-				}
-			}
-		case err, ok := <-watcher.Errors:
-			if !ok {
-				return
-			}
-			log.Printf("Watcher error: %v", err)
+		}
+		log.Printf("File changed: %s", event.Name)
+		if err := ss.builder.Build(); err != nil {
+			log.Printf("Build error: %v", err)
+		} else {
+			ss.notifyClients()
+		}
+	}
+}
+
+func (ss *SiteServer) notifyClients() {
+	ss.clientsMu.Lock()
+	defer ss.clientsMu.Unlock()
+
+	log.Printf("Notifying %d clients", len(ss.clients))
+	for client := range ss.clients {
+		if _, err := client.Write([]byte("data: reload\n\n")); err != nil {
+			delete(ss.clients, client)
+		} else {
+			client.(http.Flusher).Flush()
 		}
 	}
 }
