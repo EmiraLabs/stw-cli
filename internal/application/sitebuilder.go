@@ -38,9 +38,9 @@ func (sb *SiteBuilder) Build() error {
 
 	// Parse templates
 	tmpl, err := sb.renderer.ParseFiles(
-		filepath.Join(sb.site.TemplatesDir, "base.html"),
-		filepath.Join(sb.site.TemplatesDir, "components", "header.html"),
-		filepath.Join(sb.site.TemplatesDir, "components", "footer.html"),
+		filepath.Join(sb.site.TemplatesDir, domain.BaseTemplate),
+		filepath.Join(sb.site.TemplatesDir, domain.HeaderTemplateFile),
+		filepath.Join(sb.site.TemplatesDir, domain.FooterTemplateFile),
 	)
 	if err != nil {
 		return err
@@ -62,7 +62,7 @@ func (sb *SiteBuilder) buildPages(tmpl *template.Template) error {
 		if d.IsDir() {
 			return nil
 		}
-		if d.Name() == "index.html" {
+		if d.Name() == domain.IndexFile {
 			rel, _ := filepath.Rel(sb.site.PagesDir, path)
 			dst := filepath.Join(sb.site.DistDir, rel)
 			if err := sb.fs.MkdirAll(filepath.Dir(dst), 0755); err != nil {
@@ -70,7 +70,7 @@ func (sb *SiteBuilder) buildPages(tmpl *template.Template) error {
 			}
 
 			var title string
-			if rel == "index.html" {
+			if rel == domain.IndexFile {
 				title = "Home"
 			} else {
 				dir := filepath.Dir(rel)
@@ -88,7 +88,7 @@ func (sb *SiteBuilder) buildPages(tmpl *template.Template) error {
 				return err
 			}
 			defer f.Close()
-			return tmpl.ExecuteTemplate(f, "base.html", page)
+			return tmpl.ExecuteTemplate(f, domain.BaseTemplate, page)
 		}
 		return nil
 	})

@@ -42,15 +42,15 @@ func (m *MockFileSystem) WalkDir(root string, fn fs.WalkDirFunc) error {
 	// Simulate walking pages
 	if root == "pages" {
 		// index.html
-		if err := fn("pages/index.html", &mockDirEntry{name: "index.html", isDir: false}, nil); err != nil {
+		if err := fn("pages/index.html", &mockDirEntry{name: domain.IndexFile, isDir: false}, nil); err != nil {
 			return err
 		}
 		// about/index.html
-		if err := fn("pages/about/index.html", &mockDirEntry{name: "index.html", isDir: false}, nil); err != nil {
+		if err := fn("pages/about/index.html", &mockDirEntry{name: domain.IndexFile, isDir: false}, nil); err != nil {
 			return err
 		}
 		// about/contact/index.html
-		if err := fn("pages/about/contact/index.html", &mockDirEntry{name: "index.html", isDir: false}, nil); err != nil {
+		if err := fn("pages/about/contact/index.html", &mockDirEntry{name: domain.IndexFile, isDir: false}, nil); err != nil {
 			return err
 		}
 		// some other file
@@ -86,7 +86,7 @@ func (m *MockFileSystem) ReadFile(filename string) ([]byte, error) {
 		return content, nil
 	}
 	// Default content for pages
-	if strings.HasSuffix(filename, "index.html") {
+	if strings.HasSuffix(filename, domain.IndexFile) {
 		return []byte("<h1>Hello</h1>"), nil
 	}
 	return []byte("content"), nil
