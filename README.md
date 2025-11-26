@@ -36,7 +36,7 @@ This will generate the site in the `dist` directory.
 ./stw -serve
 ```
 
-This will build the site and serve it on `http://localhost:8001`.
+This will build the site and serve it on `http://localhost:8080`.
 
 ## Project Structure
 

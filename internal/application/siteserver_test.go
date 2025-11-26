@@ -30,12 +30,15 @@ func (m *mockHTTPServer) ListenAndServe(addr string, handler http.Handler) error
 func TestNewSiteServer(t *testing.T) {
 	site := &domain.Site{}
 	builder := &mockSiteBuilder{}
-	server := NewSiteServer(site, builder)
+	server := NewSiteServer(site, builder, "8080")
 	if server.site != site || server.builder != builder {
 		t.Error("NewSiteServer did not set fields correctly")
 	}
 	if server.server == nil {
 		t.Error("Server not set")
+	}
+	if server.port != "8080" {
+		t.Error("Port not set correctly")
 	}
 }
 
@@ -47,6 +50,7 @@ func TestSiteServer_Serve(t *testing.T) {
 		site:    site,
 		builder: builder,
 		server:  httpServer,
+		port:    "8080",
 	}
 
 	err := server.Serve()
