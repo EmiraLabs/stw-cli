@@ -23,6 +23,7 @@ type MockFileSystem struct {
 	readError   error
 	createError error
 	mkdirError  error
+	removeError error
 }
 
 func NewMockFileSystem() *MockFileSystem {
@@ -110,6 +111,9 @@ func (m *MockFileSystem) MkdirAll(path string, perm fs.FileMode) error {
 
 func (m *MockFileSystem) RemoveAll(path string) error {
 	m.removeCalls = append(m.removeCalls, path)
+	if m.removeError != nil {
+		return m.removeError
+	}
 	return nil
 }
 
@@ -206,6 +210,24 @@ func TestSiteBuilder_Build_ParseError(t *testing.T) {
 	err := builder.Build()
 	if err == nil {
 		t.Error("Expected error from ParseFiles")
+	}
+}
+
+func TestSiteBuilder_Build_RemoveError(t *testing.T) {
+	site := &domain.Site{
+		PagesDir:     "pages",
+		TemplatesDir: "templates",
+		AssetsDir:    "assets",
+		DistDir:      "dist",
+	}
+	fs := NewMockFileSystem()
+	fs.removeError = errors.New("remove error")
+	renderer := NewMockTemplateRenderer()
+	builder := NewSiteBuilder(site, fs, renderer)
+
+	err := builder.Build()
+	if err == nil {
+		t.Error("Expected error from RemoveAll")
 	}
 }
 
@@ -342,6 +364,20 @@ func TestSiteBuilder_buildPages_ReadError(t *testing.T) {
 	}
 }
 
+func TestSiteBuilder_buildPages_CreateError(t *testing.T) {
+	site := &domain.Site{DistDir: "dist", PagesDir: "pages"}
+	fs := NewMockFileSystem()
+	fs.createError = errors.New("create error")
+	renderer := NewMockTemplateRenderer()
+	builder := &SiteBuilder{site: site, fs: fs, renderer: renderer}
+	tmpl, _ := renderer.ParseFiles("templates/base.html")
+
+	err := builder.buildPages(tmpl)
+	if err == nil {
+		t.Error("Expected error from Create")
+	}
+}
+
 func TestSiteBuilder_copyAssets(t *testing.T) {
 	site := &domain.Site{DistDir: "dist", AssetsDir: "assets"}
 	fs := NewMockFileSystem()
@@ -361,6 +397,18 @@ func TestSiteBuilder_copyAssets(t *testing.T) {
 	}
 	if !contains(fs.mkdirCalls, "dist/assets/js") {
 		t.Error("MkdirAll for dist/assets/js not called")
+	}
+}
+
+func TestSiteBuilder_copyAssets_Error(t *testing.T) {
+	site := &domain.Site{DistDir: "dist", AssetsDir: "assets"}
+	fs := NewMockFileSystem()
+	fs.createError = errors.New("create error")
+	builder := &SiteBuilder{site: site, fs: fs}
+
+	err := builder.copyAssets()
+	if err == nil {
+		t.Error("Expected error from copyFile")
 	}
 }
 

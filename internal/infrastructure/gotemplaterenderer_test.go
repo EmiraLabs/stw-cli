@@ -32,6 +32,14 @@ func TestGoTemplateRenderer_ParseFiles(t *testing.T) {
 	}
 }
 
+func TestGoTemplateRenderer_ParseFiles_Error(t *testing.T) {
+	renderer := &GoTemplateRenderer{}
+	_, err := renderer.ParseFiles("nonexistent.html")
+	if err == nil {
+		t.Error("Expected error from ParseFiles")
+	}
+}
+
 func TestGoTemplateRenderer_ExecuteTemplate(t *testing.T) {
 	renderer := &GoTemplateRenderer{}
 	tmpl, _ := template.New("test").Parse("{{.Title}}")
@@ -45,5 +53,18 @@ func TestGoTemplateRenderer_ExecuteTemplate(t *testing.T) {
 	}
 	if buf.String() != "Test Title" {
 		t.Errorf("Expected 'Test Title', got '%s'", buf.String())
+	}
+}
+
+func TestGoTemplateRenderer_ExecuteTemplate_Error(t *testing.T) {
+	renderer := &GoTemplateRenderer{}
+	tmpl, _ := template.New("test").Parse("{{.Invalid}}")
+	renderer.tmpl = tmpl
+
+	var buf bytes.Buffer
+	data := struct{ Title string }{"Test Title"}
+	err := renderer.ExecuteTemplate(&buf, "test", data)
+	if err == nil {
+		t.Error("Expected error from ExecuteTemplate")
 	}
 }
