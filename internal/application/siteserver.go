@@ -7,17 +7,33 @@ import (
 	"github.com/EmiraLabs/stw-cli/internal/domain"
 )
 
+type SiteBuilderInterface interface {
+	Build() error
+}
+
+type HTTPServerInterface interface {
+	ListenAndServe(addr string, handler http.Handler) error
+}
+
+type DefaultHTTPServer struct{}
+
+func (d *DefaultHTTPServer) ListenAndServe(addr string, handler http.Handler) error {
+	return http.ListenAndServe(addr, handler)
+}
+
 // SiteServer handles serving the static site
 type SiteServer struct {
 	site    *domain.Site
-	builder *SiteBuilder
+	builder SiteBuilderInterface
+	server  HTTPServerInterface
 }
 
 // NewSiteServer creates a new SiteServer
-func NewSiteServer(site *domain.Site, builder *SiteBuilder) *SiteServer {
+func NewSiteServer(site *domain.Site, builder SiteBuilderInterface) *SiteServer {
 	return &SiteServer{
 		site:    site,
 		builder: builder,
+		server:  &DefaultHTTPServer{},
 	}
 }
 
@@ -28,5 +44,5 @@ func (ss *SiteServer) Serve() error {
 	}
 	fs := http.FileServer(http.Dir(ss.site.DistDir))
 	log.Printf("Serving %s on http://localhost:8001", ss.site.DistDir)
-	return http.ListenAndServe(":8001", fs)
+	return ss.server.ListenAndServe(":8001", fs)
 }
