@@ -9,9 +9,9 @@ const (
 
 // Site represents the static site configuration
 type Site struct {
-	PagesDir     string
-	TemplatesDir string
-	AssetsDir    string
-	DistDir      string
-	IsDev        bool
+	PagesDir         string
+	TemplatesDir     string
+	AssetsDir        string
+	DistDir          string
+	EnableAutoReload bool
 }

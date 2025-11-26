@@ -39,6 +39,12 @@ This will generate the site in the `dist` directory.
 
 This will build the site and serve it on `http://localhost:8080`. The site will automatically rebuild and reload in the browser when HTML, template, or asset files are changed.
 
+To disable auto-reload:
+
+```bash
+./stw serve --watch=false
+```
+
 ## Project Structure
 
 - `pages/`: Directory containing HTML pages

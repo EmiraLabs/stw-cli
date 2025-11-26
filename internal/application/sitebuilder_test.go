@@ -234,11 +234,11 @@ func TestSiteBuilder_Build_RemoveError(t *testing.T) {
 
 func TestSiteBuilder_Build(t *testing.T) {
 	site := &domain.Site{
-		PagesDir:     "pages",
-		TemplatesDir: "templates",
-		AssetsDir:    "assets",
-		DistDir:      "dist",
-		IsDev:        false,
+		PagesDir:         "pages",
+		TemplatesDir:     "templates",
+		AssetsDir:        "assets",
+		DistDir:          "dist",
+		EnableAutoReload: false,
 	}
 	fs := NewMockFileSystem()
 	renderer := NewMockTemplateRenderer()
