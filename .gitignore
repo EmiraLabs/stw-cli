@@ -3,3 +3,4 @@ assets
 pages
 templates
 dist
+coverage.out
