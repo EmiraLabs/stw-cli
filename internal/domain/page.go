@@ -8,4 +8,5 @@ type Page struct {
 	Content template.HTML
 	Path    string // relative path
 	IsDev   bool
+	Config  map[string]interface{}
 }

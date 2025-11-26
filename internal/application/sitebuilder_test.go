@@ -88,7 +88,7 @@ func (m *MockFileSystem) ReadFile(filename string) ([]byte, error) {
 	}
 	// Default content for pages
 	if strings.HasSuffix(filename, domain.IndexFile) {
-		return []byte("<h1>Hello</h1>"), nil
+		return []byte("<h1>{{.Title}}</h1>{{.Config.test}}"), nil
 	}
 	return []byte("content"), nil
 }
@@ -239,6 +239,7 @@ func TestSiteBuilder_Build(t *testing.T) {
 		AssetsDir:        "assets",
 		DistDir:          "dist",
 		EnableAutoReload: false,
+		Config:           map[string]interface{}{"test": "value"},
 	}
 	fs := NewMockFileSystem()
 	renderer := NewMockTemplateRenderer()
@@ -297,7 +298,7 @@ func TestSiteBuilder_Build(t *testing.T) {
 }
 
 func TestSiteBuilder_buildPages(t *testing.T) {
-	site := &domain.Site{DistDir: "dist", PagesDir: "pages"}
+	site := &domain.Site{DistDir: "dist", PagesDir: "pages", Config: map[string]interface{}{"test": "value"}}
 	fs := NewMockFileSystem()
 	renderer := NewMockTemplateRenderer()
 	builder := &SiteBuilder{site: site, fs: fs, renderer: renderer}
@@ -325,7 +326,7 @@ func TestSiteBuilder_buildPages(t *testing.T) {
 }
 
 func TestSiteBuilder_buildPages_MkdirError(t *testing.T) {
-	site := &domain.Site{DistDir: "dist", PagesDir: "pages"}
+	site := &domain.Site{DistDir: "dist", PagesDir: "pages", Config: map[string]interface{}{}}
 	fs := NewMockFileSystem()
 	fs.mkdirError = errors.New("mkdir error")
 	renderer := NewMockTemplateRenderer()
@@ -339,7 +340,7 @@ func TestSiteBuilder_buildPages_MkdirError(t *testing.T) {
 }
 
 func TestSiteBuilder_buildPages_ExecuteError(t *testing.T) {
-	site := &domain.Site{DistDir: "dist", PagesDir: "pages"}
+	site := &domain.Site{DistDir: "dist", PagesDir: "pages", Config: map[string]interface{}{}}
 	fs := NewMockFileSystem()
 	renderer := NewMockTemplateRenderer()
 	renderer.executeError = errors.New("execute error")
@@ -353,7 +354,7 @@ func TestSiteBuilder_buildPages_ExecuteError(t *testing.T) {
 }
 
 func TestSiteBuilder_buildPages_ReadError(t *testing.T) {
-	site := &domain.Site{DistDir: "dist", PagesDir: "pages"}
+	site := &domain.Site{DistDir: "dist", PagesDir: "pages", Config: map[string]interface{}{}}
 	fs := NewMockFileSystem()
 	fs.readError = errors.New("read error")
 	renderer := NewMockTemplateRenderer()
@@ -367,7 +368,7 @@ func TestSiteBuilder_buildPages_ReadError(t *testing.T) {
 }
 
 func TestSiteBuilder_buildPages_CreateError(t *testing.T) {
-	site := &domain.Site{DistDir: "dist", PagesDir: "pages"}
+	site := &domain.Site{DistDir: "dist", PagesDir: "pages", Config: map[string]interface{}{}}
 	fs := NewMockFileSystem()
 	fs.createError = errors.New("create error")
 	renderer := NewMockTemplateRenderer()

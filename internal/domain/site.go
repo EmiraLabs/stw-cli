@@ -14,4 +14,6 @@ type Site struct {
 	AssetsDir        string
 	DistDir          string
 	EnableAutoReload bool
+	Config           map[string]interface{}
+	ConfigPath       string
 }
