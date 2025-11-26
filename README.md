@@ -7,6 +7,7 @@ A simple static website generator and server CLI tool written in Go.
 - Build static websites from HTML pages and templates
 - Serve the built site locally
 - Copy static assets automatically
+- Auto-reload browser when files change during development
 
 ## Installation
 
@@ -36,7 +37,7 @@ This will generate the site in the `dist` directory.
 ./stw -serve
 ```
 
-This will build the site and serve it on `http://localhost:8080`.
+This will build the site and serve it on `http://localhost:8080`. The site will automatically rebuild and reload in the browser when HTML, template, or asset files are changed.
 
 ## Project Structure
 

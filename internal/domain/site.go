@@ -13,4 +13,5 @@ type Site struct {
 	TemplatesDir string
 	AssetsDir    string
 	DistDir      string
+	IsDev        bool
 }

@@ -7,4 +7,5 @@ type Page struct {
 	Title   string
 	Content template.HTML
 	Path    string // relative path
+	IsDev   bool
 }

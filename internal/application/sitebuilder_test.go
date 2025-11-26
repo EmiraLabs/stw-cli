@@ -238,6 +238,7 @@ func TestSiteBuilder_Build(t *testing.T) {
 		TemplatesDir: "templates",
 		AssetsDir:    "assets",
 		DistDir:      "dist",
+		IsDev:        false,
 	}
 	fs := NewMockFileSystem()
 	renderer := NewMockTemplateRenderer()
