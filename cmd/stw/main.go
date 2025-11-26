@@ -25,6 +25,7 @@ func main() {
 				TemplatesDir: "templates",
 				AssetsDir:    "assets",
 				DistDir:      "dist",
+				IsDev:        false,
 			}
 
 			fs := &infrastructure.OSFileSystem{}
@@ -49,6 +50,7 @@ func main() {
 				TemplatesDir: "templates",
 				AssetsDir:    "assets",
 				DistDir:      "dist",
+				IsDev:        true,
 			}
 
 			fs := &infrastructure.OSFileSystem{}

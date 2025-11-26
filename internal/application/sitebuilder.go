@@ -81,7 +81,7 @@ func (sb *SiteBuilder) buildPages(tmpl *template.Template) error {
 			if err != nil {
 				return err
 			}
-			page := domain.Page{Title: title, Content: template.HTML(content), Path: rel}
+			page := domain.Page{Title: title, Content: template.HTML(content), Path: rel, IsDev: sb.site.IsDev}
 
 			f, err := sb.fs.Create(dst)
 			if err != nil {
