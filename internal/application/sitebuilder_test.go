@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"io"
 	"io/fs"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -299,7 +300,7 @@ func TestSiteBuilder_buildPages(t *testing.T) {
 	fs := NewMockFileSystem()
 	renderer := NewMockTemplateRenderer()
 	builder := &SiteBuilder{site: site, fs: fs, renderer: renderer}
-	tmpl, _ := renderer.ParseFiles("templates/base.html")
+	tmpl, _ := renderer.ParseFiles(filepath.Join("templates", domain.BaseTemplate))
 
 	err := builder.buildPages(tmpl)
 	if err != nil {
@@ -328,7 +329,7 @@ func TestSiteBuilder_buildPages_MkdirError(t *testing.T) {
 	fs.mkdirError = errors.New("mkdir error")
 	renderer := NewMockTemplateRenderer()
 	builder := &SiteBuilder{site: site, fs: fs, renderer: renderer}
-	tmpl, _ := renderer.ParseFiles("templates/base.html")
+	tmpl, _ := renderer.ParseFiles(filepath.Join("templates", domain.BaseTemplate))
 
 	err := builder.buildPages(tmpl)
 	if err == nil {
@@ -342,7 +343,7 @@ func TestSiteBuilder_buildPages_ExecuteError(t *testing.T) {
 	renderer := NewMockTemplateRenderer()
 	renderer.executeError = errors.New("execute error")
 	builder := &SiteBuilder{site: site, fs: fs, renderer: renderer}
-	tmpl, _ := renderer.ParseFiles("templates/base.html")
+	tmpl, _ := renderer.ParseFiles(filepath.Join("templates", domain.BaseTemplate))
 
 	err := builder.buildPages(tmpl)
 	if err == nil {
@@ -356,7 +357,7 @@ func TestSiteBuilder_buildPages_ReadError(t *testing.T) {
 	fs.readError = errors.New("read error")
 	renderer := NewMockTemplateRenderer()
 	builder := &SiteBuilder{site: site, fs: fs, renderer: renderer}
-	tmpl, _ := renderer.ParseFiles("templates/base.html")
+	tmpl, _ := renderer.ParseFiles(filepath.Join("templates", domain.BaseTemplate))
 
 	err := builder.buildPages(tmpl)
 	if err == nil {
@@ -370,7 +371,7 @@ func TestSiteBuilder_buildPages_CreateError(t *testing.T) {
 	fs.createError = errors.New("create error")
 	renderer := NewMockTemplateRenderer()
 	builder := &SiteBuilder{site: site, fs: fs, renderer: renderer}
-	tmpl, _ := renderer.ParseFiles("templates/base.html")
+	tmpl, _ := renderer.ParseFiles(filepath.Join("templates", domain.BaseTemplate))
 
 	err := builder.buildPages(tmpl)
 	if err == nil {
