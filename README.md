@@ -44,7 +44,3 @@ This will build the site and serve it on `http://localhost:8080`.
 - `templates/`: Directory containing base template and components
 - `assets/`: Directory containing static assets (CSS, JS, images, etc.)
 - `dist/`: Output directory for the built site (generated)
-
-## License
-
-[Add your license here]
