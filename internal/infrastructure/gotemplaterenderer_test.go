@@ -36,7 +36,7 @@ func TestGoTemplateRenderer_ParseFiles_Error(t *testing.T) {
 	renderer := &GoTemplateRenderer{}
 	_, err := renderer.ParseFiles("nonexistent.html")
 	if err == nil {
-		t.Error("Expected error from ParseFiles")
+		t.Errorf("Expected error from ParseFiles, but got: %v", err)
 	}
 }
 
@@ -65,6 +65,6 @@ func TestGoTemplateRenderer_ExecuteTemplate_Error(t *testing.T) {
 	data := struct{ Title string }{"Test Title"}
 	err := renderer.ExecuteTemplate(&buf, "test", data)
 	if err == nil {
-		t.Error("Expected error from ExecuteTemplate")
+		t.Errorf("Expected error from ExecuteTemplate, but got: %v", err)
 	}
 }

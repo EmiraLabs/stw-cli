@@ -209,7 +209,7 @@ func TestSiteBuilder_Build_ParseError(t *testing.T) {
 
 	err := builder.Build()
 	if err == nil {
-		t.Error("Expected error from ParseFiles")
+		t.Errorf("Expected error from ParseFiles, but got: %v", err)
 	}
 }
 
@@ -227,7 +227,7 @@ func TestSiteBuilder_Build_RemoveError(t *testing.T) {
 
 	err := builder.Build()
 	if err == nil {
-		t.Error("Expected error from RemoveAll")
+		t.Errorf("Expected error from RemoveAll, but got: %v", err)
 	}
 }
 
@@ -332,7 +332,7 @@ func TestSiteBuilder_buildPages_MkdirError(t *testing.T) {
 
 	err := builder.buildPages(tmpl)
 	if err == nil {
-		t.Error("Expected error from MkdirAll")
+		t.Errorf("Expected error from MkdirAll, but got: %v", err)
 	}
 }
 
@@ -346,7 +346,7 @@ func TestSiteBuilder_buildPages_ExecuteError(t *testing.T) {
 
 	err := builder.buildPages(tmpl)
 	if err == nil {
-		t.Error("Expected error from ExecuteTemplate")
+		t.Errorf("Expected error from ExecuteTemplate, but got: %v", err)
 	}
 }
 
@@ -360,7 +360,7 @@ func TestSiteBuilder_buildPages_ReadError(t *testing.T) {
 
 	err := builder.buildPages(tmpl)
 	if err == nil {
-		t.Error("Expected error from ReadFile")
+		t.Errorf("Expected error from ReadFile, but got: %v", err)
 	}
 }
 
@@ -374,7 +374,7 @@ func TestSiteBuilder_buildPages_CreateError(t *testing.T) {
 
 	err := builder.buildPages(tmpl)
 	if err == nil {
-		t.Error("Expected error from Create")
+		t.Errorf("Expected error from Create, but got: %v", err)
 	}
 }
 
@@ -408,7 +408,7 @@ func TestSiteBuilder_copyAssets_Error(t *testing.T) {
 
 	err := builder.copyAssets()
 	if err == nil {
-		t.Error("Expected error from copyFile")
+		t.Errorf("Expected error from copyFile, but got: %v", err)
 	}
 }
 
@@ -434,7 +434,7 @@ func TestSiteBuilder_copyFile_ReadError(t *testing.T) {
 
 	err := builder.copyFile("src", "dst")
 	if err == nil {
-		t.Error("Expected error from ReadFile")
+		t.Errorf("Expected error from ReadFile, but got: %v", err)
 	}
 }
 
@@ -446,7 +446,7 @@ func TestSiteBuilder_copyFile_CreateError(t *testing.T) {
 
 	err := builder.copyFile("src", "dst")
 	if err == nil {
-		t.Error("Expected error from Create")
+		t.Errorf("Expected error from Create, but got: %v", err)
 	}
 }
 
