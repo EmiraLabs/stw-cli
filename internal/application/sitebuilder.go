@@ -9,6 +9,7 @@ import (
 
 	"github.com/EmiraLabs/stw-cli/internal/domain"
 	"github.com/EmiraLabs/stw-cli/internal/infrastructure"
+	"github.com/EmiraLabs/stw-cli/internal/meta"
 )
 
 // SiteBuilder handles building the static site
@@ -37,11 +38,15 @@ func (sb *SiteBuilder) Build() error {
 		return err
 	}
 
+	// Load site meta
+	siteMeta := meta.LoadSiteMeta(sb.site.Config)
+
 	// Parse templates
 	tmpl, err := sb.renderer.ParseFiles(
 		filepath.Join(sb.site.TemplatesDir, domain.BaseTemplate),
 		filepath.Join(sb.site.TemplatesDir, domain.HeaderTemplateFile),
 		filepath.Join(sb.site.TemplatesDir, domain.FooterTemplateFile),
+		filepath.Join(sb.site.TemplatesDir, "partials", "head.html"),
 	)
 	if err != nil {
 		return err
@@ -49,13 +54,13 @@ func (sb *SiteBuilder) Build() error {
 	// Set the template in renderer if possible, but since interface, perhaps cast or change.
 
 	// For simplicity, use the tmpl directly
-	sb.buildPages(tmpl)
+	sb.buildPages(tmpl, siteMeta)
 	sb.copyAssets()
 
 	return nil
 }
 
-func (sb *SiteBuilder) buildPages(tmpl *template.Template) error {
+func (sb *SiteBuilder) buildPages(tmpl *template.Template, siteMeta meta.Meta) error {
 	return sb.fs.WalkDir(sb.site.PagesDir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -83,8 +88,22 @@ func (sb *SiteBuilder) buildPages(tmpl *template.Template) error {
 				return err
 			}
 
+			// Parse front matter
+			pageMeta, body, err := meta.ParseFrontMatter(string(content))
+			if err != nil {
+				return err
+			}
+
+			// Merge meta
+			mergedMeta := meta.Merge(siteMeta, pageMeta)
+
+			// Validate meta
+			if err := mergedMeta.Validate(sb.site.AssetsDir); err != nil {
+				return err
+			}
+
 			// Parse page content as template
-			pageTmpl, err := template.New("page").Parse(string(content))
+			pageTmpl, err := template.New("page").Parse(body)
 			if err != nil {
 				return err
 			}
@@ -95,6 +114,7 @@ func (sb *SiteBuilder) buildPages(tmpl *template.Template) error {
 				Path:   rel,
 				IsDev:  sb.site.EnableAutoReload,
 				Config: sb.site.Config,
+				Meta:   mergedMeta,
 			}
 
 			// Execute page template
@@ -109,6 +129,7 @@ func (sb *SiteBuilder) buildPages(tmpl *template.Template) error {
 				Path:    rel,
 				IsDev:   sb.site.EnableAutoReload,
 				Config:  sb.site.Config,
+				Meta:    mergedMeta,
 			}
 
 			f, err := sb.fs.Create(dst)

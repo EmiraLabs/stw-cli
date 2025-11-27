@@ -1,6 +1,7 @@
 package infrastructure
 
 import (
+	"encoding/json"
 	"html/template"
 	"io"
 )
@@ -12,8 +13,14 @@ type GoTemplateRenderer struct {
 
 // ParseFiles parses the named files into a template
 func (tr *GoTemplateRenderer) ParseFiles(filenames ...string) (*template.Template, error) {
+	funcMap := template.FuncMap{
+		"toJson": func(v interface{}) template.JS {
+			b, _ := json.Marshal(v)
+			return template.JS(b)
+		},
+	}
 	var err error
-	tr.tmpl, err = template.ParseFiles(filenames...)
+	tr.tmpl, err = template.New("").Funcs(funcMap).ParseFiles(filenames...)
 	return tr.tmpl, err
 }
 
