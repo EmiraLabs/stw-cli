@@ -31,6 +31,86 @@ description: "Test Description"
 	}
 }
 
+func TestParseYAMLFrontMatter(t *testing.T) {
+	// Valid YAML front matter
+	yamlContent := `---
+title: "YAML Title"
+description: "YAML Description"
+---
+<body content>`
+
+	meta, body, err := parseYAMLFrontMatter(yamlContent)
+	if err != nil {
+		t.Fatalf("parseYAMLFrontMatter failed: %v", err)
+	}
+	if meta.Title != "YAML Title" {
+		t.Errorf("Expected title 'YAML Title', got '%s'", meta.Title)
+	}
+	if body != "<body content>" {
+		t.Errorf("Expected body '<body content>', got '%s'", body)
+	}
+
+	// No YAML front matter
+	noYAMLContent := `<html><body>Content</body></html>`
+	meta2, body2, err2 := parseYAMLFrontMatter(noYAMLContent)
+	if err2 != nil {
+		t.Fatalf("parseYAMLFrontMatter failed on no YAML: %v", err2)
+	}
+	if meta2.Title != "" {
+		t.Errorf("Expected empty title for no YAML, got '%s'", meta2.Title)
+	}
+	if body2 != noYAMLContent {
+		t.Errorf("Expected unchanged body, got '%s'", body2)
+	}
+
+	// Invalid YAML front matter (missing closing ---)
+	invalidYAML := `---
+title: "Test"
+<body>`
+	_, _, err3 := parseYAMLFrontMatter(invalidYAML)
+	if err3 == nil {
+		t.Error("Expected error for invalid YAML front matter")
+	}
+}
+
+func TestParseJSONFrontMatter(t *testing.T) {
+	// Valid JSON front matter
+	jsonContent := `{"title": "JSON Title", "description": "JSON Description"}
+<body content>`
+
+	meta, body, err := parseJSONFrontMatter(jsonContent)
+	if err != nil {
+		t.Fatalf("parseJSONFrontMatter failed: %v", err)
+	}
+	if meta.Title != "JSON Title" {
+		t.Errorf("Expected title 'JSON Title', got '%s'", meta.Title)
+	}
+	if body != "<body content>" {
+		t.Errorf("Expected body '<body content>', got '%s'", body)
+	}
+
+	// No JSON front matter
+	noJSONContent := `<html><body>Content</body></html>`
+	meta2, body2, err2 := parseJSONFrontMatter(noJSONContent)
+	if err2 != nil {
+		t.Fatalf("parseJSONFrontMatter failed on no JSON: %v", err2)
+	}
+	if meta2.Title != "" {
+		t.Errorf("Expected empty title for no JSON, got '%s'", meta2.Title)
+	}
+	if body2 != noJSONContent {
+		t.Errorf("Expected unchanged body, got '%s'", body2)
+	}
+
+	// Invalid JSON front matter (missing closing })
+	invalidJSON := `{"title": "Test"
+<body>`
+	_, _, err3 := parseJSONFrontMatter(invalidJSON)
+	if err3 == nil {
+		t.Error("Expected error for invalid JSON front matter")
+	}
+}
+
 func TestMerge(t *testing.T) {
 	siteMeta := Meta{
 		Title:       "Site Title",

@@ -91,44 +91,74 @@ func Merge(siteMeta, pageMeta Meta) Meta {
 	return merged
 }
 
-// ParseFrontMatter extracts YAML front matter from page content.
-// It looks for content between --- markers and parses it into a Meta struct.
-// Returns the parsed meta, the body content without front matter, and any error.
-func ParseFrontMatter(content string) (Meta, string, error) {
+// parseYAMLFrontMatter extracts and parses YAML front matter from content.
+// Returns the parsed meta, body content without front matter, and any error.
+func parseYAMLFrontMatter(content string) (Meta, string, error) {
 	var meta Meta
-	var body string
-
-	// Check for YAML front matter
-	if strings.HasPrefix(content, "---\n") {
-		parts := strings.SplitN(content, "---\n", 3)
-		if len(parts) >= 3 {
-			if err := yaml.Unmarshal([]byte(parts[1]), &meta); err != nil {
-				return meta, content, err
-			}
-			body = parts[2]
-		} else {
-			body = content
-		}
-	} else if strings.HasPrefix(content, "{\n") || strings.HasPrefix(content, "{") {
-		// Simple check for JSON
-		end := strings.Index(content, "}\n")
-		if end == -1 {
-			end = strings.Index(content, "}")
-		}
-		if end != -1 {
-			jsonPart := content[:end+1]
-			if err := json.Unmarshal([]byte(jsonPart), &meta); err != nil {
-				return meta, content, err
-			}
-			body = content[end+1:]
-		} else {
-			body = content
-		}
-	} else {
-		body = content
+	if !strings.HasPrefix(content, "---\n") {
+		return meta, content, nil // No YAML front matter found
 	}
 
+	parts := strings.SplitN(content, "---\n", 3)
+	if len(parts) < 3 {
+		return meta, content, fmt.Errorf("invalid YAML front matter: missing closing ---")
+	}
+
+	if err := yaml.Unmarshal([]byte(parts[1]), &meta); err != nil {
+		return meta, content, fmt.Errorf("failed to parse YAML front matter: %w", err)
+	}
+
+	body := strings.TrimLeft(parts[2], "\n")
 	return meta, body, nil
+}
+
+// parseJSONFrontMatter extracts and parses JSON front matter from content.
+// Returns the parsed meta, body content without front matter, and any error.
+func parseJSONFrontMatter(content string) (Meta, string, error) {
+	var meta Meta
+	if !strings.HasPrefix(content, "{\n") && !strings.HasPrefix(content, "{") {
+		return meta, content, nil // No JSON front matter found
+	}
+
+	end := strings.Index(content, "}\n")
+	if end == -1 {
+		end = strings.Index(content, "}")
+	}
+	if end == -1 {
+		return meta, content, fmt.Errorf("invalid JSON front matter: missing closing }")
+	}
+
+	jsonPart := content[:end+1]
+	if err := json.Unmarshal([]byte(jsonPart), &meta); err != nil {
+		return meta, content, fmt.Errorf("failed to parse JSON front matter: %w", err)
+	}
+
+	body := strings.TrimLeft(content[end+1:], "\n")
+	return meta, body, nil
+}
+
+// ParseFrontMatter extracts YAML or JSON front matter from page content.
+// It tries YAML first, then JSON, and falls back to returning the content as-is.
+// Returns the parsed meta, the body content without front matter, and any error.
+func ParseFrontMatter(content string) (Meta, string, error) {
+	// Try YAML front matter first
+	if meta, body, err := parseYAMLFrontMatter(content); err != nil {
+		return Meta{}, content, err
+	} else if meta.Title != "" || meta.Description != "" || len(meta.JsonLd) > 0 {
+		// Check if we actually parsed something (not just empty front matter)
+		return meta, body, nil
+	}
+
+	// Try JSON front matter
+	if meta, body, err := parseJSONFrontMatter(content); err != nil {
+		return Meta{}, content, err
+	} else if meta.Title != "" || meta.Description != "" || len(meta.JsonLd) > 0 {
+		// Check if we actually parsed something
+		return meta, body, nil
+	}
+
+	// No front matter found, return content as-is
+	return Meta{}, content, nil
 }
 
 // LoadSiteMeta extracts site-wide meta configuration from the config map.
