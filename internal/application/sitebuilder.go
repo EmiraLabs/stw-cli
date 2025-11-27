@@ -46,7 +46,7 @@ func (sb *SiteBuilder) Build() error {
 		filepath.Join(sb.site.TemplatesDir, domain.BaseTemplate),
 		filepath.Join(sb.site.TemplatesDir, domain.HeaderTemplateFile),
 		filepath.Join(sb.site.TemplatesDir, domain.FooterTemplateFile),
-		filepath.Join(sb.site.TemplatesDir, "partials", "head.html"),
+		filepath.Join(sb.site.TemplatesDir, domain.HeadTemplateFile),
 	)
 	if err != nil {
 		return err
