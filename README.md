@@ -18,7 +18,7 @@ Complete documentation is available in the [docs/](docs/) directory:
 - [Quick Start](docs/quick-start.md)
 - [Configuration](docs/configuration.md)
 - [Commands](docs/commands.md)
-- [Project Structure](docs/project-structure.md)
+- [Site Structure](docs/site-structure.md)
 - [Templates](docs/templates.md)
 - [SEO Meta System](docs/seo-meta.md)
 - [Cloudflare Pages Deployment](docs/deployment-cloudflare.md)
