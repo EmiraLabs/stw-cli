@@ -5,6 +5,7 @@ const (
 	BaseTemplate       = "base.html"
 	HeaderTemplateFile = "components/header.html"
 	FooterTemplateFile = "components/footer.html"
+	HeadTemplateFile   = "partials/head.html"
 )
 
 // Site represents the static site configuration
