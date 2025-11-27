@@ -54,8 +54,12 @@ func (sb *SiteBuilder) Build() error {
 	// Set the template in renderer if possible, but since interface, perhaps cast or change.
 
 	// For simplicity, use the tmpl directly
-	sb.buildPages(tmpl, siteMeta)
-	sb.copyAssets()
+	if err := sb.buildPages(tmpl, siteMeta); err != nil {
+		return err
+	}
+	if err := sb.copyAssets(); err != nil {
+		return err
+	}
 
 	return nil
 }
