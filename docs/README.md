@@ -11,7 +11,7 @@ This directory contains comprehensive documentation for stw-cli, a static websit
 ## Usage
 
 - [Commands](commands.md) - Complete reference for all CLI commands
-- [Project Structure](project-structure.md) - Understanding the directory layout
+- [Site Structure](site-structure.md) - Understanding the directory layout
 - [Templates](templates.md) - Creating and customizing templates
 - [SEO Meta System](seo-meta.md) - Complete guide to configuring SEO metadata
 
@@ -23,5 +23,6 @@ This directory contains comprehensive documentation for stw-cli, a static websit
 ## Advanced
 
 - [API Reference](api-reference.md) - Go package documentation
+- [Project Structure](project-structure.md) - Codebase organization
 - [Contributing](contributing.md) - How to contribute to stw-cli
 - [Troubleshooting](troubleshooting.md) - Common issues and solutions
