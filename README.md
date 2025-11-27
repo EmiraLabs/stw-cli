@@ -9,6 +9,11 @@ A simple static website generator and server CLI tool written in Go.
 - Copy static assets automatically
 - Auto-reload browser when files change during development
 - Deploy to Cloudflare Pages using Wrangler
+- **SEO Meta Support**: Per-page and site-wide SEO metadata with front matter
+
+## Documentation
+
+- [SEO Meta System](docs/seo-meta.md) - Complete guide to configuring SEO metadata
 
 ## Installation
 

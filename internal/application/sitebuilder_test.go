@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/EmiraLabs/stw-cli/internal/domain"
+	"github.com/EmiraLabs/stw-cli/internal/meta"
 )
 
 // MockFileSystem is a mock implementation of FileSystem for testing
@@ -304,7 +305,7 @@ func TestSiteBuilder_buildPages(t *testing.T) {
 	builder := &SiteBuilder{site: site, fs: fs, renderer: renderer}
 	tmpl, _ := renderer.ParseFiles(filepath.Join("templates", domain.BaseTemplate))
 
-	err := builder.buildPages(tmpl)
+	err := builder.buildPages(tmpl, meta.Meta{})
 	if err != nil {
 		t.Errorf("buildPages failed: %v", err)
 	}
@@ -333,7 +334,7 @@ func TestSiteBuilder_buildPages_MkdirError(t *testing.T) {
 	builder := &SiteBuilder{site: site, fs: fs, renderer: renderer}
 	tmpl, _ := renderer.ParseFiles(filepath.Join("templates", domain.BaseTemplate))
 
-	err := builder.buildPages(tmpl)
+	err := builder.buildPages(tmpl, meta.Meta{})
 	if err == nil {
 		t.Errorf("Expected error from MkdirAll, but got: %v", err)
 	}
@@ -347,7 +348,7 @@ func TestSiteBuilder_buildPages_ExecuteError(t *testing.T) {
 	builder := &SiteBuilder{site: site, fs: fs, renderer: renderer}
 	tmpl, _ := renderer.ParseFiles(filepath.Join("templates", domain.BaseTemplate))
 
-	err := builder.buildPages(tmpl)
+	err := builder.buildPages(tmpl, meta.Meta{})
 	if err == nil {
 		t.Errorf("Expected error from ExecuteTemplate, but got: %v", err)
 	}
@@ -361,7 +362,7 @@ func TestSiteBuilder_buildPages_ReadError(t *testing.T) {
 	builder := &SiteBuilder{site: site, fs: fs, renderer: renderer}
 	tmpl, _ := renderer.ParseFiles(filepath.Join("templates", domain.BaseTemplate))
 
-	err := builder.buildPages(tmpl)
+	err := builder.buildPages(tmpl, meta.Meta{})
 	if err == nil {
 		t.Errorf("Expected error from ReadFile, but got: %v", err)
 	}
@@ -375,7 +376,7 @@ func TestSiteBuilder_buildPages_CreateError(t *testing.T) {
 	builder := &SiteBuilder{site: site, fs: fs, renderer: renderer}
 	tmpl, _ := renderer.ParseFiles(filepath.Join("templates", domain.BaseTemplate))
 
-	err := builder.buildPages(tmpl)
+	err := builder.buildPages(tmpl, meta.Meta{})
 	if err == nil {
 		t.Errorf("Expected error from Create, but got: %v", err)
 	}
