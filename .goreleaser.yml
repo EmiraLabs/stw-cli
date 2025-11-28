@@ -1,0 +1,101 @@
+# GoReleaser configuration for stw-cli
+# https://goreleaser.com
+
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+    - go test ./...
+
+builds:
+  - main: ./cmd/stw
+    binary: stw
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{.Date}}
+
+archives:
+  - format: tar.gz
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- .Os }}_
+      {{- .Arch }}
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - README.md
+      - LICENSE
+      - docs/*
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+      - 'merge conflict'
+      - Merge pull request
+      - Merge remote-tracking branch
+      - Merge branch
+  groups:
+    - title: Features
+      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      order: 0
+    - title: 'Bug Fixes'
+      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
+      order: 1
+    - title: 'Documentation'
+      regexp: '^.*?docs(\([[:word:]]+\))??!?:.+$'
+      order: 2
+    - title: Others
+      order: 999
+
+release:
+  github:
+    owner: EmiraLabs
+    name: stw-cli
+  name_template: "v{{.Version}}"
+  header: |
+    ## stw-cli {{.Version}}
+    
+    The static site generator designed for Cloudflare Pages.
+    
+    ### Installation
+    
+    **Using Go:**
+    ```bash
+    go install github.com/EmiraLabs/stw-cli/cmd/stw@{{.Version}}
+    ```
+    
+    **Using pre-built binaries:**
+    Download the appropriate binary for your platform below.
+  footer: |
+    ---
+    
+    **Full Changelog**: https://github.com/EmiraLabs/stw-cli/compare/{{.PreviousTag}}...{{.Tag}}
+    
+    Built with ❤️ by [EmiraLabs](https://emiralabs.com)

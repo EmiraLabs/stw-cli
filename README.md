@@ -50,11 +50,21 @@ Build clean, fast static sites and deploy to Cloudflare Pages with zero friction
 
 ### 1. Install stw-cli
 
+**Quick Install (Linux/macOS):**
 ```bash
-# Using Go (recommended)
-go install github.com/EmiraLabs/stw-cli/cmd/stw@latest
+curl -sSL https://raw.githubusercontent.com/EmiraLabs/stw-cli/main/install.sh | sh
+```
 
-# Or build from source
+**Using Go:**
+```bash
+go install github.com/EmiraLabs/stw-cli/cmd/stw@latest
+```
+
+**Pre-built Binaries:**
+Download for your platform from [GitHub Releases](https://github.com/EmiraLabs/stw-cli/releases/latest)
+
+**Build from Source:**
+```bash
 git clone https://github.com/EmiraLabs/stw-cli.git
 cd stw-cli
 go build -o stw ./cmd/stw
