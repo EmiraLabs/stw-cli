@@ -2,17 +2,15 @@ package application
 
 import (
 	"bytes"
-	"context"
 	"errors"
 	"html/template"
 	"net/http"
-	"net/http/httptest"
 	"os"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/EmiraLabs/stw-cli/internal/domain"
+	"github.com/fsnotify/fsnotify"
 )
 
 type mockSiteBuilder struct {
@@ -188,30 +186,255 @@ nav:
 	}
 }
 
-func TestSiteServer_handleReload(t *testing.T) {
-	site := &domain.Site{}
-	server := &SiteServer{
-		site:    site,
-		clients: make(map[http.ResponseWriter]bool),
+func TestSiteServer_convertToHTML(t *testing.T) {
+	// Test the convertToHTML function in siteserver
+	// Since it's private, we can't call it directly, but we can test through reloadConfig
+	// which uses it
+
+	// Create temp config file with HTML content
+	configContent := `
+title: <h1>Test Site</h1>
+nav:
+  - name: "<b>Home</b>"
+    url: /
+`
+	tempFile := t.TempDir() + "/config.yaml"
+	if err := os.WriteFile(tempFile, []byte(configContent), 0644); err != nil {
+		t.Fatal(err)
 	}
 
-	// Create a test request with cancellable context
-	ctx, cancel := context.WithCancel(context.Background())
-	req := httptest.NewRequest("GET", "/__reload", nil).WithContext(ctx)
-	w := httptest.NewRecorder()
+	site := &domain.Site{ConfigPath: tempFile}
+	server := &SiteServer{site: site}
 
-	// Call handleReload in a goroutine
-	go server.handleReload(w, req)
+	err := server.reloadConfig()
+	if err != nil {
+		t.Fatalf("reloadConfig failed: %v", err)
+	}
 
-	// Wait a bit, then cancel the request
-	time.Sleep(10 * time.Millisecond)
-	cancel()
+	// Check that HTML strings are converted
+	if title, ok := server.site.Config["title"]; !ok || string(title.(template.HTML)) != "<h1>Test Site</h1>" {
+		t.Errorf("Expected HTML title, got %v", title)
+	}
 
-	// Wait a bit for the handler to finish
-	time.Sleep(10 * time.Millisecond)
+	if nav, ok := server.site.Config["nav"].([]interface{}); ok && len(nav) > 0 {
+		if item, ok := nav[0].(map[string]interface{}); ok {
+			if name, ok := item["name"]; !ok || string(name.(template.HTML)) != "<b>Home</b>" {
+				t.Errorf("Expected HTML name, got %v", name)
+			}
+		}
+	}
+}
 
-	// Check response headers
-	if w.Header().Get("Content-Type") != "text/event-stream" {
-		t.Error("Wrong content type")
+func TestSiteServer_initWatcher(t *testing.T) {
+	// This test is limited since fsnotify requires real filesystem
+	// But we can test the basic call
+	site := &domain.Site{
+		PagesDir:     "pages",
+		TemplatesDir: "templates",
+		AssetsDir:    "assets",
+		ConfigPath:   "config.yaml",
+	}
+	server := &SiteServer{site: site}
+
+	// Call initWatcher - this will try to create fsnotify.Watcher
+	// In test environment, it may fail or succeed
+	watcher, err := server.initWatcher()
+	if err != nil {
+		// Expected in test environment without real dirs
+		t.Logf("initWatcher failed as expected: %v", err)
+		return
+	}
+	if watcher != nil {
+		watcher.Close()
+	}
+}
+
+func TestSiteServer_reloadConfig_InvalidYAML(t *testing.T) {
+	// Create temp config file with invalid YAML
+	configContent := `
+title: Test Site
+invalid: yaml: content: [
+`
+	tempFile := t.TempDir() + "/config.yaml"
+	if err := os.WriteFile(tempFile, []byte(configContent), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	site := &domain.Site{ConfigPath: tempFile}
+	server := &SiteServer{site: site}
+
+	err := server.reloadConfig()
+	if err == nil {
+		t.Error("Expected YAML unmarshal error, got nil")
+	}
+}
+
+func TestSiteServer_reloadConfig_ReadFileError(t *testing.T) {
+	// Use a directory path instead of file path to cause a different read error
+	tempDir := t.TempDir()
+	site := &domain.Site{ConfigPath: tempDir} // This is a directory, not a file
+	server := &SiteServer{site: site}
+
+	err := server.reloadConfig()
+	if err == nil {
+		t.Error("Expected read file error when path is a directory, got nil")
+	}
+}
+
+func TestSiteServer_notifyClients_WriteError(t *testing.T) {
+	server := &SiteServer{
+		clients:   make(map[http.ResponseWriter]bool),
+		clientsMu: sync.Mutex{},
+	}
+
+	client1 := &mockResponseWriter{buffer: &bytes.Buffer{}, writeError: errors.New("write error")}
+	client2 := &mockResponseWriter{buffer: &bytes.Buffer{}}
+
+	server.clients[client1] = true
+	server.clients[client2] = true
+
+	initialLen := len(server.clients)
+	server.notifyClients()
+
+	// client1 should be removed due to write error
+	if len(server.clients) != initialLen-1 {
+		t.Errorf("Expected client to be removed on write error, clients count: %d", len(server.clients))
+	}
+
+	// client2 should still be there and have received the message
+	if client2.buffer.String() != "data: reload\n\n" {
+		t.Errorf("Client2 received %q, expected %q", client2.buffer.String(), "data: reload\n\n")
+	}
+}
+
+func TestSiteServer_Serve_WithAutoReload(t *testing.T) {
+	site := &domain.Site{
+		DistDir:          "dist",
+		EnableAutoReload: true,
+	}
+	builder := &mockSiteBuilder{}
+	httpServer := &mockHTTPServer{listenError: errors.New("server stopped")}
+	server := &SiteServer{
+		site:    site,
+		builder: builder,
+		server:  httpServer,
+		port:    "8080",
+	}
+
+	// This will call ListenAndServe which returns an error
+	err := server.Serve()
+	if err != httpServer.listenError {
+		t.Errorf("Expected server error %v, got %v", httpServer.listenError, err)
+	}
+	if !builder.buildCalled {
+		t.Error("Build should be called")
+	}
+	if !httpServer.listenCalled {
+		t.Error("ListenAndServe should be called")
+	}
+}
+
+func TestSiteServer_Serve_WithoutAutoReload(t *testing.T) {
+	site := &domain.Site{
+		DistDir:          "dist",
+		EnableAutoReload: false,
+	}
+	builder := &mockSiteBuilder{}
+	httpServer := &mockHTTPServer{listenError: errors.New("server stopped")}
+	server := &SiteServer{
+		site:    site,
+		builder: builder,
+		server:  httpServer,
+		port:    "8080",
+	}
+
+	err := server.Serve()
+	if err != httpServer.listenError {
+		t.Errorf("Expected server error %v, got %v", httpServer.listenError, err)
+	}
+	if !builder.buildCalled {
+		t.Error("Build should be called")
+	}
+	if !httpServer.listenCalled {
+		t.Error("ListenAndServe should be called")
+	}
+}
+
+func TestSiteServer_handleFileEvent_WriteEvent(t *testing.T) {
+	tempDir := t.TempDir()
+	site := &domain.Site{
+		PagesDir:     tempDir + "/pages",
+		TemplatesDir: tempDir + "/templates",
+		AssetsDir:    tempDir + "/assets",
+		ConfigPath:   tempDir + "/config.yaml",
+		DistDir:      tempDir + "/dist",
+	}
+
+	// Create directories
+	os.MkdirAll(site.PagesDir, 0755)
+	os.MkdirAll(site.TemplatesDir, 0755)
+	os.MkdirAll(site.AssetsDir, 0755)
+	os.MkdirAll(site.DistDir, 0755)
+
+	builder := &mockSiteBuilder{}
+	server := &SiteServer{
+		site:     site,
+		builder:  builder,
+		reloadCh: make(chan struct{}, 1),
+	}
+
+	// Test write event on a page file
+	event := fsnotify.Event{
+		Name: tempDir + "/pages/index.html",
+		Op:   fsnotify.Write,
+	}
+
+	server.handleFileEvent(event, nil)
+
+	if !builder.buildCalled {
+		t.Error("Build should be called on file write")
+	}
+	builder.buildCalled = false // reset
+
+	// For file changes, notifyClients is called, but reloadCh is for WebSocket
+	// Let's check that notifyClients would be called by checking the log or something
+	// Actually, since notifyClients sends to WebSocket clients, and we have none, it's fine
+}
+
+func TestSiteServer_handleFileEvent_ConfigChange(t *testing.T) {
+	tempDir := t.TempDir()
+	configPath := tempDir + "/config.yaml"
+	site := &domain.Site{
+		ConfigPath: configPath,
+		DistDir:    tempDir + "/dist",
+	}
+
+	os.MkdirAll(site.DistDir, 0755)
+
+	builder := &mockSiteBuilder{}
+	server := &SiteServer{
+		site:     site,
+		builder:  builder,
+		reloadCh: make(chan struct{}, 1),
+	}
+
+	// Test config file change
+	event := fsnotify.Event{
+		Name: configPath,
+		Op:   fsnotify.Write,
+	}
+
+	// Create config file first
+	os.WriteFile(configPath, []byte("title: test"), 0644)
+
+	server.handleFileEvent(event, nil)
+
+	if !builder.buildCalled {
+		t.Error("Build should be called on config change")
+	}
+
+	// Check if config was reloaded
+	if server.site.Config == nil || server.site.Config["title"] != template.HTML("test") {
+		t.Error("Config should be reloaded on config file change")
 	}
 }

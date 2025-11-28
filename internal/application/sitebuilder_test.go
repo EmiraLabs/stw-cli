@@ -241,6 +241,24 @@ func TestSiteBuilder_Build_MkdirError(t *testing.T) {
 	}
 }
 
+func TestSiteBuilder_Build_RemoveError(t *testing.T) {
+	site := &domain.Site{
+		PagesDir:     "pages",
+		TemplatesDir: "templates",
+		AssetsDir:    "assets",
+		DistDir:      "dist",
+	}
+	fs := NewMockFileSystem()
+	fs.removeError = errors.New("remove error")
+	renderer := NewMockTemplateRenderer()
+	builder := NewSiteBuilder(site, fs, renderer)
+
+	err := builder.Build()
+	if err == nil {
+		t.Errorf("Expected error from RemoveAll, but got: %v", err)
+	}
+}
+
 func TestSiteBuilder_Build(t *testing.T) {
 	site := &domain.Site{
 		PagesDir:         "pages",
