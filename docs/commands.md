@@ -68,28 +68,61 @@ stw serve -p 3000 -w
 
 ## init
 
-Initializes deployment configuration for Cloudflare Pages.
+Initialize a new project from the official template, with optional Cloudflare Pages configuration.
 
 ```bash
-stw init
+stw init <project-name> [flags]
 ```
 
-**Description:** Interactive setup for Cloudflare Pages deployment. Prompts for project name and custom domain, then configures `wrangler.json`.
+**Description:** Scaffolds a new static site project by cloning the [official stw template](https://github.com/EmiraLabs/stw) and optionally configures it for Cloudflare Pages deployment via Wrangler.
+
+**Arguments:**
+- `<project-name>` (required): Name of the project directory to create
+
+**Flags:**
+- `--wrangler`, `-w` (bool): Also configure Wrangler for Cloudflare Pages deployment (default: false)
 
 **What it does:**
-- Prompts for project name (default: "stw-site")
-- Prompts for custom domain (required)
-- Updates `wrangler.json` with the provided values
-- Prepares the project for Cloudflare Pages deployment
+1. **Scaffolding:**
+   - Clones the official template from `https://github.com/EmiraLabs/stw`
+   - Creates a new directory with your project name
+   - Sets up the complete project structure (pages/, templates/, assets/, config.yaml)
+   - Removes Git history and initializes a fresh repository
 
-**Example interaction:**
+2. **Wrangler Configuration (if `--wrangler` flag used):**
+   - Prompts for project name (default: from project directory name)
+   - Prompts for custom domain (e.g., yoursite.com)
+   - Updates `wrangler.json` with the provided configuration
+   - Prepares the project for immediate Cloudflare Pages deployment
+
+**Examples:**
+
+```bash
+# Create a basic site
+stw init my-website
+
+# Create site and configure for Cloudflare Pages
+stw init my-website --wrangler
+
+# Short form
+stw init my-website -w
 ```
-Enter project name (default: stw-site): my-awesome-site
-Enter custom domain (e.g., yoursite.com): myawesome.com
-wrangler.json updated successfully.
 
-Next steps for deployment:
-...
+**Example interaction with --wrangler:**
+```
+Initializing project: my-website
+✓ Cloned template
+✓ Created project directory
+
+Configure Cloudflare Pages deployment:
+Enter project name (default: my-website): my-awesome-site
+Enter custom domain (e.g., yoursite.com): myawesome.com
+✓ wrangler.json configured
+
+Next steps:
+  cd my-website
+  stw serve              # Start development
+  git push origin main   # Deploy to Cloudflare Pages
 ```
 
 ## Command Structure
