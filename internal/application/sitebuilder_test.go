@@ -27,6 +27,8 @@ type MockFileSystem struct {
 	mkdirError  error
 	removeError error
 	walkError   error
+	hasPages    bool
+	hasAssets   bool
 }
 
 func NewMockFileSystem() *MockFileSystem {
@@ -37,6 +39,8 @@ func NewMockFileSystem() *MockFileSystem {
 		createCalls: []string{},
 		mkdirCalls:  []string{},
 		removeCalls: []string{},
+		hasPages:    true,
+		hasAssets:   true,
 	}
 }
 
@@ -46,7 +50,7 @@ func (m *MockFileSystem) WalkDir(root string, fn fs.WalkDirFunc) error {
 	}
 	m.walkCalls = append(m.walkCalls, root)
 	// Simulate walking pages
-	if root == "pages" {
+	if root == "pages" && m.hasPages {
 		// index.html
 		if err := fn("pages/index.html", &mockDirEntry{name: domain.IndexFile, isDir: false}, nil); err != nil {
 			return err
@@ -64,7 +68,7 @@ func (m *MockFileSystem) WalkDir(root string, fn fs.WalkDirFunc) error {
 			return err
 		}
 	}
-	if root == "assets" {
+	if root == "assets" && m.hasAssets {
 		if err := fn("assets", &mockDirEntry{name: "assets", isDir: true}, nil); err != nil {
 			return err
 		}
@@ -429,6 +433,32 @@ func TestSiteBuilder_copyAssets_WalkError(t *testing.T) {
 	err := builder.copyAssets()
 	if err == nil {
 		t.Errorf("Expected error from WalkDir, but got: %v", err)
+	}
+}
+
+func TestSiteBuilder_Build_NoPages(t *testing.T) {
+	site := &domain.Site{
+		PagesDir:     "pages",
+		TemplatesDir: "templates",
+		AssetsDir:    "assets",
+		DistDir:      "dist",
+	}
+	fs := NewMockFileSystem()
+	fs.hasPages = false
+	renderer := NewMockTemplateRenderer()
+	builder := NewSiteBuilder(site, fs, renderer)
+
+	err := builder.Build()
+	if err != nil {
+		t.Errorf("Build failed: %v", err)
+	}
+
+	// Check that no pages were built
+	// Should not have created any dist files from pages
+	for _, call := range fs.createCalls {
+		if strings.HasPrefix(call, "dist/") && strings.HasSuffix(call, ".html") {
+			t.Errorf("Unexpected create call for page: %s", call)
+		}
 	}
 }
 
