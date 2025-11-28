@@ -4,24 +4,21 @@ import (
 	"testing"
 )
 
-func TestParseFrontMatter(t *testing.T) {
-	yamlContent := `---
-title: "Test Title"
-description: "Test Description"
----
+func TestParseFrontMatter_JSON(t *testing.T) {
+	jsonContent := `{"title": "JSON Title", "description": "JSON Description"}
 <section>
 <h1>Test</h1>
 </section>`
 
-	meta, body, err := ParseFrontMatter(yamlContent)
+	meta, body, err := ParseFrontMatter(jsonContent)
 	if err != nil {
 		t.Fatalf("ParseFrontMatter failed: %v", err)
 	}
-	if meta.Title != "Test Title" {
-		t.Errorf("Expected title 'Test Title', got '%s'", meta.Title)
+	if meta.Title != "JSON Title" {
+		t.Errorf("Expected title 'JSON Title', got '%s'", meta.Title)
 	}
-	if meta.Description != "Test Description" {
-		t.Errorf("Expected description 'Test Description', got '%s'", meta.Description)
+	if meta.Description != "JSON Description" {
+		t.Errorf("Expected description 'JSON Description', got '%s'", meta.Description)
 	}
 	expectedBody := `<section>
 <h1>Test</h1>
@@ -135,6 +132,39 @@ func TestMerge(t *testing.T) {
 	}
 	if merged.Robots != "index,follow" {
 		t.Errorf("Expected robots 'index,follow', got '%s'", merged.Robots)
+	}
+}
+
+func TestLoadSiteMeta(t *testing.T) {
+	config := map[string]interface{}{
+		"meta": map[string]interface{}{
+			"title":       "Site Title",
+			"description": "Site Description",
+			"keywords":    "site, keywords",
+		},
+		"other": "value",
+	}
+
+	meta := LoadSiteMeta(config)
+	if meta.Title != "Site Title" {
+		t.Errorf("Expected title 'Site Title', got '%s'", meta.Title)
+	}
+	if meta.Description != "Site Description" {
+		t.Errorf("Expected description 'Site Description', got '%s'", meta.Description)
+	}
+	if meta.Keywords != "site, keywords" {
+		t.Errorf("Expected keywords 'site, keywords', got '%s'", meta.Keywords)
+	}
+}
+
+func TestLoadSiteMeta_NoMeta(t *testing.T) {
+	config := map[string]interface{}{
+		"other": "value",
+	}
+
+	meta := LoadSiteMeta(config)
+	if meta.Title != "" {
+		t.Errorf("Expected empty title, got '%s'", meta.Title)
 	}
 }
 

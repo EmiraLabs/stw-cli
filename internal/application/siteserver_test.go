@@ -2,6 +2,7 @@ package application
 
 import (
 	"bytes"
+	"errors"
 	"net/http"
 	"sync"
 	"testing"
@@ -67,9 +68,9 @@ func TestNewSiteServer(t *testing.T) {
 	}
 }
 
-func TestSiteServer_Serve(t *testing.T) {
+func TestSiteServer_Serve_BuildError(t *testing.T) {
 	site := &domain.Site{DistDir: "dist"}
-	builder := &mockSiteBuilder{}
+	builder := &mockSiteBuilder{buildError: errors.New("build error")}
 	httpServer := &mockHTTPServer{}
 	server := &SiteServer{
 		site:    site,
@@ -79,14 +80,14 @@ func TestSiteServer_Serve(t *testing.T) {
 	}
 
 	err := server.Serve()
-	if err != httpServer.listenError {
-		t.Errorf("Expected error %v, got %v", httpServer.listenError, err)
+	if err != builder.buildError {
+		t.Errorf("Expected build error %v, got %v", builder.buildError, err)
 	}
 	if !builder.buildCalled {
-		t.Error("Build was not called")
+		t.Error("Build should be called even if it fails")
 	}
-	if !httpServer.listenCalled {
-		t.Error("ListenAndServe was not called")
+	if httpServer.listenCalled {
+		t.Error("ListenAndServe should not be called if build fails")
 	}
 }
 

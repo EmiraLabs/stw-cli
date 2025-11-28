@@ -140,26 +140,87 @@ home:
 	}
 }
 
-func TestLoadConfigNoFile(t *testing.T) {
-	// Test loading config when file doesn't exist
-	// Change to a temp dir
+func TestLoadConfigInvalidYAML(t *testing.T) {
+	// Create a temporary directory and invalid config file
 	tmpDir, err := os.MkdirTemp("", "stw-test")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll(tmpDir)
 
+	invalidYAML := `
+navigations:
+  - title: "Home"
+    url: "/"
+  - title: "About"
+    url: "/about"
+    invalid: [unclosed
+`
+	configPath := tmpDir + "/config.yaml"
+	if err := os.WriteFile(configPath, []byte(invalidYAML), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Change to temp dir
 	oldWd, _ := os.Getwd()
 	os.Chdir(tmpDir)
 	defer os.Chdir(oldWd)
 
+	// Test loading config
+	_, err = loadConfig()
+	if err == nil {
+		t.Error("Expected error for invalid YAML, but got none")
+	}
+}
+
+func TestLoadConfigValid(t *testing.T) {
+	// Create a temporary directory and valid config file
+	tmpDir, err := os.MkdirTemp("", "stw-test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	validYAML := `
+navigations:
+  - title: "Home"
+    url: "/"
+  - title: "About"
+    url: "/about"
+home:
+  title: "<h1>Welcome</h1>"
+  content: "Some content"
+`
+	configPath := tmpDir + "/config.yaml"
+	if err := os.WriteFile(configPath, []byte(validYAML), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Change to temp dir
+	oldWd, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(oldWd)
+
+	// Test loading config
 	config, err := loadConfig()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if len(config) != 0 {
-		t.Errorf("Expected empty config, got %v", config)
+	if config["navigations"] == nil {
+		t.Error("navigations not found in config")
+	}
+
+	if home, ok := config["home"].(map[string]interface{}); ok {
+		if title, ok := home["title"].(template.HTML); ok {
+			if string(title) != "<h1>Welcome</h1>" {
+				t.Errorf("Expected HTML title, got %v", title)
+			}
+		} else {
+			t.Error("title is not template.HTML")
+		}
+	} else {
+		t.Error("home is not a map")
 	}
 }
 

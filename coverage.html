@@ -57,17 +57,17 @@
 				
 				<option value="file0">github.com/EmiraLabs/stw-cli/cmd/stw/init.go (1.7%)</option>
 				
-				<option value="file1">github.com/EmiraLabs/stw-cli/cmd/stw/main.go (46.9%)</option>
+				<option value="file1">github.com/EmiraLabs/stw-cli/cmd/stw/main.go (49.0%)</option>
 				
 				<option value="file2">github.com/EmiraLabs/stw-cli/internal/application/sitebuilder.go (85.9%)</option>
 				
-				<option value="file3">github.com/EmiraLabs/stw-cli/internal/application/siteserver.go (13.9%)</option>
+				<option value="file3">github.com/EmiraLabs/stw-cli/internal/application/siteserver.go (8.9%)</option>
 				
 				<option value="file4">github.com/EmiraLabs/stw-cli/internal/infrastructure/gotemplaterenderer.go (71.4%)</option>
 				
 				<option value="file5">github.com/EmiraLabs/stw-cli/internal/infrastructure/osfilesystem.go (100.0%)</option>
 				
-				<option value="file6">github.com/EmiraLabs/stw-cli/internal/meta/helpers.go (66.2%)</option>
+				<option value="file6">github.com/EmiraLabs/stw-cli/internal/meta/helpers.go (76.1%)</option>
 				
 				</select>
 			</div>
@@ -245,7 +245,7 @@ func loadConfig() (map[string]interface{}, error) <span class="cov8" title="1">{
                 <span class="cov0" title="0">return nil, err</span>
         }
         <span class="cov8" title="1">var config map[string]interface{}
-        if err := yaml.Unmarshal(data, &amp;config); err != nil </span><span class="cov0" title="0">{
+        if err := yaml.Unmarshal(data, &amp;config); err != nil </span><span class="cov8" title="1">{
                 return nil, err
         }</span>
         <span class="cov8" title="1">return convertToHTML(config).(map[string]interface{}), nil</span>
@@ -371,10 +371,10 @@ func NewSiteBuilder(site *domain.Site, fs infrastructure.FileSystem, renderer in
 // Build builds the site
 func (sb *SiteBuilder) Build() error <span class="cov8" title="1">{
         // Remove and recreate dist dir
-        if err := sb.fs.RemoveAll(sb.site.DistDir); err != nil </span><span class="cov8" title="1">{
+        if err := sb.fs.RemoveAll(sb.site.DistDir); err != nil </span><span class="cov0" title="0">{
                 return err
         }</span>
-        <span class="cov8" title="1">if err := sb.fs.MkdirAll(sb.site.DistDir, 0755); err != nil </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if err := sb.fs.MkdirAll(sb.site.DistDir, 0755); err != nil </span><span class="cov8" title="1">{
                 return err
         }</span>
 
@@ -611,21 +611,21 @@ func (ss *SiteServer) reloadConfig() error <span class="cov0" title="0">{
 
 // Serve builds and serves the site
 func (ss *SiteServer) Serve() error <span class="cov8" title="1">{
-        if err := ss.builder.Build(); err != nil </span><span class="cov0" title="0">{
+        if err := ss.builder.Build(); err != nil </span><span class="cov8" title="1">{
                 return err
         }</span>
 
         // Start file watcher if enabled
-        <span class="cov8" title="1">if ss.site.EnableAutoReload </span><span class="cov0" title="0">{
+        <span class="cov0" title="0">if ss.site.EnableAutoReload </span><span class="cov0" title="0">{
                 go ss.watchFiles()
         }</span>
 
         // Custom handler
-        <span class="cov8" title="1">mux := http.NewServeMux()
+        <span class="cov0" title="0">mux := http.NewServeMux()
         if ss.site.EnableAutoReload </span><span class="cov0" title="0">{
                 mux.HandleFunc("/__reload", ss.handleReload)
         }</span>
-        <span class="cov8" title="1">mux.Handle("/", http.FileServer(http.Dir(ss.site.DistDir)))
+        <span class="cov0" title="0">mux.Handle("/", http.FileServer(http.Dir(ss.site.DistDir)))
 
         log.Printf("Serving %s on http://localhost:%s", ss.site.DistDir, ss.port)
         return ss.server.ListenAndServe(":"+ss.port, mux)</span>
@@ -980,15 +980,15 @@ func ParseFrontMatter(content string) (Meta, string, error) <span class="cov8" t
         // Try YAML front matter first
         if meta, body, err := parseYAMLFrontMatter(content); err != nil </span><span class="cov0" title="0">{
                 return Meta{}, content, err
-        }</span> else<span class="cov8" title="1"> if meta.Title != "" || meta.Description != "" || len(meta.JsonLd) &gt; 0 </span><span class="cov8" title="1">{
+        }</span> else<span class="cov8" title="1"> if meta.Title != "" || meta.Description != "" || len(meta.JsonLd) &gt; 0 </span><span class="cov0" title="0">{
                 // Check if we actually parsed something (not just empty front matter)
                 return meta, body, nil
         }</span>
 
         // Try JSON front matter
-        <span class="cov0" title="0">if meta, body, err := parseJSONFrontMatter(content); err != nil </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if meta, body, err := parseJSONFrontMatter(content); err != nil </span><span class="cov0" title="0">{
                 return Meta{}, content, err
-        }</span> else<span class="cov0" title="0"> if meta.Title != "" || meta.Description != "" || len(meta.JsonLd) &gt; 0 </span><span class="cov0" title="0">{
+        }</span> else<span class="cov8" title="1"> if meta.Title != "" || meta.Description != "" || len(meta.JsonLd) &gt; 0 </span><span class="cov8" title="1">{
                 // Check if we actually parsed something
                 return meta, body, nil
         }</span>
@@ -999,14 +999,14 @@ func ParseFrontMatter(content string) (Meta, string, error) <span class="cov8" t
 
 // LoadSiteMeta extracts site-wide meta configuration from the config map.
 // It looks for a "meta" key in the configuration and unmarshals it into a Meta struct.
-func LoadSiteMeta(config map[string]interface{}) Meta <span class="cov0" title="0">{
+func LoadSiteMeta(config map[string]interface{}) Meta <span class="cov8" title="1">{
         var meta Meta
-        if metaData, ok := config["meta"].(map[string]interface{}); ok </span><span class="cov0" title="0">{
+        if metaData, ok := config["meta"].(map[string]interface{}); ok </span><span class="cov8" title="1">{
                 // Convert map to Meta
                 data, _ := yaml.Marshal(metaData)
                 yaml.Unmarshal(data, &amp;meta)
         }</span>
-        <span class="cov0" title="0">return meta</span>
+        <span class="cov8" title="1">return meta</span>
 }
 </pre>
 		

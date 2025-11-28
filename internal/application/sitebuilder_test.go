@@ -26,6 +26,7 @@ type MockFileSystem struct {
 	createError error
 	mkdirError  error
 	removeError error
+	walkError   error
 }
 
 func NewMockFileSystem() *MockFileSystem {
@@ -40,6 +41,9 @@ func NewMockFileSystem() *MockFileSystem {
 }
 
 func (m *MockFileSystem) WalkDir(root string, fn fs.WalkDirFunc) error {
+	if m.walkError != nil {
+		return m.walkError
+	}
 	m.walkCalls = append(m.walkCalls, root)
 	// Simulate walking pages
 	if root == "pages" {
@@ -215,7 +219,7 @@ func TestSiteBuilder_Build_ParseError(t *testing.T) {
 	}
 }
 
-func TestSiteBuilder_Build_RemoveError(t *testing.T) {
+func TestSiteBuilder_Build_MkdirError(t *testing.T) {
 	site := &domain.Site{
 		PagesDir:     "pages",
 		TemplatesDir: "templates",
@@ -223,13 +227,13 @@ func TestSiteBuilder_Build_RemoveError(t *testing.T) {
 		DistDir:      "dist",
 	}
 	fs := NewMockFileSystem()
-	fs.removeError = errors.New("remove error")
+	fs.mkdirError = errors.New("mkdir error")
 	renderer := NewMockTemplateRenderer()
 	builder := NewSiteBuilder(site, fs, renderer)
 
 	err := builder.Build()
 	if err == nil {
-		t.Errorf("Expected error from RemoveAll, but got: %v", err)
+		t.Errorf("Expected error from MkdirAll, but got: %v", err)
 	}
 }
 
@@ -413,6 +417,18 @@ func TestSiteBuilder_copyAssets_Error(t *testing.T) {
 	err := builder.copyAssets()
 	if err == nil {
 		t.Errorf("Expected error from copyFile, but got: %v", err)
+	}
+}
+
+func TestSiteBuilder_copyAssets_WalkError(t *testing.T) {
+	site := &domain.Site{DistDir: "dist", AssetsDir: "assets"}
+	fs := NewMockFileSystem()
+	fs.walkError = errors.New("walk error")
+	builder := &SiteBuilder{site: site, fs: fs}
+
+	err := builder.copyAssets()
+	if err == nil {
+		t.Errorf("Expected error from WalkDir, but got: %v", err)
 	}
 }
 
