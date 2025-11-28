@@ -3,6 +3,7 @@ package main
 import (
 	"html/template"
 	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -159,5 +160,109 @@ func TestLoadConfigNoFile(t *testing.T) {
 
 	if len(config) != 0 {
 		t.Errorf("Expected empty config, got %v", config)
+	}
+}
+
+func TestBuild(t *testing.T) {
+	// Create temp dir
+	tmpDir, err := os.MkdirTemp("", "stw-build-test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Create pages/index.html
+	pagesDir := filepath.Join(tmpDir, "pages")
+	os.MkdirAll(pagesDir, 0755)
+	indexPath := filepath.Join(pagesDir, "index.html")
+	content := `---
+title: Home
+---
+<h1>Welcome</h1>`
+	if err := os.WriteFile(indexPath, []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create templates
+	templatesDir := filepath.Join(tmpDir, "templates")
+	os.MkdirAll(filepath.Join(templatesDir, "components"), 0755)
+	os.MkdirAll(filepath.Join(templatesDir, "partials"), 0755)
+
+	basePath := filepath.Join(templatesDir, "base.html")
+	baseContent := `<!DOCTYPE html>
+<html>
+<head><title>{{.Title}}</title></head>
+<body>
+<header><h1>{{.Title}}</h1></header>
+{{.Content}}
+<footer>Footer</footer>
+</body>
+</html>`
+	if err := os.WriteFile(basePath, []byte(baseContent), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	headerPath := filepath.Join(templatesDir, "components", "header.html")
+	if err := os.WriteFile(headerPath, []byte(""), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	footerPath := filepath.Join(templatesDir, "components", "footer.html")
+	if err := os.WriteFile(footerPath, []byte(""), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	headPath := filepath.Join(templatesDir, "partials", "head.html")
+	if err := os.WriteFile(headPath, []byte(""), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create assets
+	assetsDir := filepath.Join(tmpDir, "assets")
+	os.MkdirAll(assetsDir, 0755)
+	cssDir := filepath.Join(assetsDir, "css")
+	os.MkdirAll(cssDir, 0755)
+	cssPath := filepath.Join(cssDir, "styles.css")
+	if err := os.WriteFile(cssPath, []byte("body { }"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Change wd
+	oldWd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chdir(oldWd)
+
+	// Call build
+	if err := build(); err != nil {
+		t.Fatalf("build failed: %v", err)
+	}
+
+	// Check dist/index.html
+	distPath := filepath.Join(tmpDir, "dist", "index.html")
+	if _, err := os.Stat(distPath); os.IsNotExist(err) {
+		t.Error("dist/index.html not created")
+	}
+
+	// Optionally check content
+	data, err := os.ReadFile(distPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expected := `<!DOCTYPE html>
+<html>
+<head><title>Home</title></head>
+<body>
+<header><h1>Home</h1></header>
+<h1>Welcome</h1>
+<footer>Footer</footer>
+</body>
+</html>`
+	if string(data) != expected {
+		t.Errorf("Expected %s, got %s", expected, string(data))
 	}
 }

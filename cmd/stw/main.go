@@ -47,6 +47,55 @@ func loadConfig() (map[string]interface{}, error) {
 	return convertToHTML(config).(map[string]interface{}), nil
 }
 
+func build() error {
+	config, err := loadConfig()
+	if err != nil {
+		return err
+	}
+
+	site := &domain.Site{
+		PagesDir:         "pages",
+		TemplatesDir:     "templates",
+		AssetsDir:        "assets",
+		DistDir:          "dist",
+		EnableAutoReload: false,
+		Config:           config,
+		ConfigPath:       "config.yaml",
+	}
+
+	fs := &infrastructure.OSFileSystem{}
+	renderer := &infrastructure.GoTemplateRenderer{}
+
+	builder := application.NewSiteBuilder(site, fs, renderer)
+
+	return builder.Build()
+}
+
+func serve(port string, watch bool) error {
+	config, err := loadConfig()
+	if err != nil {
+		return err
+	}
+
+	site := &domain.Site{
+		PagesDir:         "pages",
+		TemplatesDir:     "templates",
+		AssetsDir:        "assets",
+		DistDir:          "dist",
+		EnableAutoReload: watch,
+		Config:           config,
+		ConfigPath:       "config.yaml",
+	}
+
+	fs := &infrastructure.OSFileSystem{}
+	renderer := &infrastructure.GoTemplateRenderer{}
+
+	builder := application.NewSiteBuilder(site, fs, renderer)
+
+	server := application.NewSiteServer(site, builder, port)
+	return server.Serve()
+}
+
 func main() {
 	var rootCmd = &cobra.Command{
 		Use:   "stw",
@@ -56,64 +105,19 @@ func main() {
 	var buildCmd = &cobra.Command{
 		Use:   "build",
 		Short: "Build the static site",
-		Run: func(cmd *cobra.Command, args []string) {
-			config, err := loadConfig()
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			site := &domain.Site{
-				PagesDir:         "pages",
-				TemplatesDir:     "templates",
-				AssetsDir:        "assets",
-				DistDir:          "dist",
-				EnableAutoReload: false,
-				Config:           config,
-				ConfigPath:       "config.yaml",
-			}
-
-			fs := &infrastructure.OSFileSystem{}
-			renderer := &infrastructure.GoTemplateRenderer{}
-
-			builder := application.NewSiteBuilder(site, fs, renderer)
-
-			if err := builder.Build(); err != nil {
-				log.Fatal(err)
-			}
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return build()
 		},
 	}
 
 	var serveCmd = &cobra.Command{
 		Use:   "serve",
 		Short: "Build and serve the static site",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			port, _ := cmd.Flags().GetString("port")
 			watch, _ := cmd.Flags().GetBool("watch")
 
-			config, err := loadConfig()
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			site := &domain.Site{
-				PagesDir:         "pages",
-				TemplatesDir:     "templates",
-				AssetsDir:        "assets",
-				DistDir:          "dist",
-				EnableAutoReload: watch,
-				Config:           config,
-				ConfigPath:       "config.yaml",
-			}
-
-			fs := &infrastructure.OSFileSystem{}
-			renderer := &infrastructure.GoTemplateRenderer{}
-
-			builder := application.NewSiteBuilder(site, fs, renderer)
-
-			server := application.NewSiteServer(site, builder, port)
-			if err := server.Serve(); err != nil {
-				log.Fatal(err)
-			}
+			return serve(port, watch)
 		},
 	}
 
