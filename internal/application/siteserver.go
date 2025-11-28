@@ -128,6 +128,10 @@ func (ss *SiteServer) handleReload(w http.ResponseWriter, r *http.Request) {
 		ss.clientsMu.Unlock()
 	}()
 
+	ss.handleWebSocketMessages(w, r)
+}
+
+func (ss *SiteServer) handleWebSocketMessages(w http.ResponseWriter, r *http.Request) {
 	// Listen for reload events
 	for {
 		select {

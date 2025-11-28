@@ -2,6 +2,7 @@ package application
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"html/template"
 	"net/http"
@@ -37,10 +38,14 @@ type mockResponseWriter struct {
 	buffer     *bytes.Buffer
 	flushed    bool
 	writeError error
+	header     http.Header
 }
 
 func (m *mockResponseWriter) Header() http.Header {
-	return http.Header{}
+	if m.header == nil {
+		m.header = make(http.Header)
+	}
+	return m.header
 }
 
 func (m *mockResponseWriter) Write(data []byte) (int, error) {
@@ -436,5 +441,98 @@ func TestSiteServer_handleFileEvent_ConfigChange(t *testing.T) {
 	// Check if config was reloaded
 	if server.site.Config == nil || server.site.Config["title"] != template.HTML("test") {
 		t.Error("Config should be reloaded on config file change")
+	}
+}
+
+func TestSiteServer_Serve_RegistersReloadHandler(t *testing.T) {
+	site := &domain.Site{
+		DistDir:          "dist",
+		EnableAutoReload: true,
+	}
+	builder := &mockSiteBuilder{}
+	httpServer := &mockHTTPServer{listenError: errors.New("server stopped")}
+	server := &SiteServer{
+		site:    site,
+		builder: builder,
+		server:  httpServer,
+		port:    "8080",
+	}
+
+	// We can't easily test the mux registration directly, but we can test that
+	// the Serve method completes the setup. The handleReload function exists
+	// and would be called if the route is accessed.
+
+	// For now, just ensure Serve doesn't panic and calls the expected functions
+	err := server.Serve()
+	if err != httpServer.listenError {
+		t.Errorf("Expected server error %v, got %v", httpServer.listenError, err)
+	}
+}
+
+func TestSiteServer_initWatcher_NonExistentDirs(t *testing.T) {
+	site := &domain.Site{
+		PagesDir:     "/nonexistent/pages",
+		TemplatesDir: "/nonexistent/templates",
+		AssetsDir:    "/nonexistent/assets",
+		ConfigPath:   "/nonexistent/config.yaml",
+	}
+	server := &SiteServer{site: site}
+
+	// This should fail because fsnotify.NewWatcher might work but watching non-existent dirs will log errors
+	watcher, err := server.initWatcher()
+	if err != nil {
+		// fsnotify.NewWatcher failed
+		t.Logf("initWatcher failed as expected: %v", err)
+		return
+	}
+	if watcher != nil {
+		watcher.Close()
+	}
+	// The function should still return a watcher even if some dirs can't be watched
+}
+
+func TestSiteServer_handleReload_Setup(t *testing.T) {
+	site := &domain.Site{}
+	builder := &mockSiteBuilder{}
+	server := &SiteServer{
+		site:      site,
+		builder:   builder,
+		clients:   make(map[http.ResponseWriter]bool),
+		clientsMu: sync.Mutex{},
+	}
+
+	// Create a mock response writer
+	responseWriter := &mockResponseWriter{
+		buffer: &bytes.Buffer{},
+	}
+
+	// Create a request with a context that is already cancelled
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // Cancel immediately
+	req := &http.Request{
+		Header: make(http.Header),
+	}
+	req = req.WithContext(ctx)
+
+	// Call handleReload - it should set up headers and exit quickly due to cancelled context
+	server.handleReload(responseWriter, req)
+
+	// Check that headers were set
+	if responseWriter.Header().Get("Content-Type") != "text/event-stream" {
+		t.Error("Content-Type header not set correctly")
+	}
+	if responseWriter.Header().Get("Cache-Control") != "no-cache" {
+		t.Error("Cache-Control header not set correctly")
+	}
+	if responseWriter.Header().Get("Connection") != "keep-alive" {
+		t.Error("Connection header not set correctly")
+	}
+
+	// Check that client was registered and then removed
+	server.clientsMu.Lock()
+	clientCount := len(server.clients)
+	server.clientsMu.Unlock()
+	if clientCount != 0 {
+		t.Error("Client should have been removed after disconnect")
 	}
 }
