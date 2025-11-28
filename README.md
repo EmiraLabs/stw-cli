@@ -13,16 +13,23 @@ Build clean, fast static sites and deploy to Cloudflare Pages with zero friction
 
 ## Why stw-cli?
 
-**Stop wrestling with Hugo.** Most static sites don't need 300+ features—they need simplicity and fast Cloudflare deployment.
+**Stop wrestling with complex tools.** Most static sites don't need 300+ features—they need simplicity and fast Cloudflare deployment.
 
-| Need | Hugo | stw-cli |
-|------|------|---------|
-| **Deploy to Cloudflare** | Manual setup | `stw init --wrangler` ✅ |
-| **Setup time** | 30+ minutes | 5 minutes ✅ |
-| **Config complexity** | 100+ options | One YAML file ✅ |
-| **Learning curve** | Steep documentation | Quick start guide ✅ |
-| **Template language** | Go templates | Go templates ✅ |
-| **Best for** | Blogs, complex sites | Company sites, landing pages ✅ |
+### Comparison with Popular Static Site Generators
+
+| Feature | Jekyll | Hugo | 11ty | **stw-cli** |
+|---------|--------|------|------|-------------|
+| **Platform** | GitHub Pages | Generic | Generic | **Cloudflare Pages** ✅ |
+| **Language** | Ruby | Go | JavaScript | **Go** |
+| **Setup** | `gem install` | `brew install` | `npm install` | **`go install`** |
+| **Config** | _config.yml | config.toml/yaml | .eleventy.js | **config.yaml** ✅ |
+| **Cloudflare Deploy** | Manual | Manual | Manual | **`stw init --wrangler`** ✅ |
+| **Setup Time** | 15 min | 30 min | 20 min | **5 min** ✅ |
+| **Learning Curve** | Moderate | Steep | Moderate | **Gentle** ✅ |
+| **Best For** | GitHub Pages blogs | Complex sites | JS developers | **Cloudflare Pages sites** ✅ |
+
+**Key Insight:** If you're moving from **Jekyll on GitHub Pages** to **Cloudflare Pages**, stw-cli is the natural choice. Same simplicity, better platform.
+
 
 ### Perfect For
 
@@ -178,6 +185,33 @@ my-site/
 - ✅ Need for extensive theme ecosystem
 
 **Philosophy:** We built stw-cli for the 80% use case—simple sites that deserve simple tooling.
+
+---
+
+## Migrating from Jekyll?
+
+If you're currently using Jekyll on GitHub Pages and want to move to Cloudflare Pages, stw-cli is your smoothest path:
+
+**What's Familiar:**
+- ✅ Simple YAML configuration (like Jekyll's `_config.yml`)
+- ✅ Front matter for page metadata
+- ✅ Template-based rendering
+- ✅ Static file generation
+
+**What's Better:**
+- ⚡ Cloudflare's global CDN (faster than GitHub Pages)
+- 🔒 Automatic SSL with custom domains (no CNAME gymnastics)
+- 🚀 Workers integration for dynamic features
+- 💰 More generous free tier
+
+**Migration Steps:**
+1. `stw init my-site --wrangler` - scaffold new project
+2. Copy content from Jekyll's `_posts/` to stw's `pages/`
+3. Adapt Liquid templates to Go templates (similar syntax)
+4. Update `config.yaml` with your site settings
+5. `git push` - auto-deploy to Cloudflare Pages
+
+**Not ready to switch?** That's fine. Use Hugo for complex blogs. Use stw-cli when you need simplicity + Cloudflare.
 
 ---
 
