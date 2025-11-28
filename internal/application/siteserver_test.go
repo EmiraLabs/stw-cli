@@ -2,10 +2,15 @@ package application
 
 import (
 	"bytes"
+	"context"
 	"errors"
+	"html/template"
 	"net/http"
+	"net/http/httptest"
+	"os"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/EmiraLabs/stw-cli/internal/domain"
 )
@@ -150,4 +155,63 @@ func TestSiteServer_clientsConcurrency(t *testing.T) {
 	}()
 
 	wg.Wait()
+}
+
+func TestSiteServer_reloadConfig(t *testing.T) {
+	// Create temp config file
+	configContent := `
+title: Test Site
+nav:
+  - name: Home
+    url: /
+`
+	tempFile := t.TempDir() + "/config.yaml"
+	if err := os.WriteFile(tempFile, []byte(configContent), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	site := &domain.Site{ConfigPath: tempFile}
+	server := &SiteServer{site: site}
+
+	// Call private method directly (same package)
+	err := server.reloadConfig()
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+
+	// Check if config was loaded
+	if server.site.Config == nil {
+		t.Error("Config not loaded")
+	}
+	if title, ok := server.site.Config["title"]; !ok || string(title.(template.HTML)) != "Test Site" {
+		t.Errorf("Expected title 'Test Site', got %v", title)
+	}
+}
+
+func TestSiteServer_handleReload(t *testing.T) {
+	site := &domain.Site{}
+	server := &SiteServer{
+		site:    site,
+		clients: make(map[http.ResponseWriter]bool),
+	}
+
+	// Create a test request with cancellable context
+	ctx, cancel := context.WithCancel(context.Background())
+	req := httptest.NewRequest("GET", "/__reload", nil).WithContext(ctx)
+	w := httptest.NewRecorder()
+
+	// Call handleReload in a goroutine
+	go server.handleReload(w, req)
+
+	// Wait a bit, then cancel the request
+	time.Sleep(10 * time.Millisecond)
+	cancel()
+
+	// Wait a bit for the handler to finish
+	time.Sleep(10 * time.Millisecond)
+
+	// Check response headers
+	if w.Header().Get("Content-Type") != "text/event-stream" {
+		t.Error("Wrong content type")
+	}
 }
