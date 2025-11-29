@@ -2,6 +2,7 @@
 
 [![Go Version](https://img.shields.io/badge/go-%3E%3D1.19-blue)](https://golang.org/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![codecov](https://codecov.io/gh/EmiraLabs/stw-cli/branch/main/graph/badge.svg)](https://codecov.io/gh/EmiraLabs/stw-cli)
 
 > **The static site generator designed for Cloudflare Pages**
 
