@@ -105,24 +105,50 @@ docs: update installation guide
 # Run all tests
 go test ./...
 
-# Run specific package tests
-go test ./internal/meta
+# Run with race detection (recommended before PR)
+go test -race ./...
 
 # Run with coverage
 go test -cover ./...
 
+# Generate detailed coverage report
+go test -coverprofile=coverage.out ./...
+go tool cover -html=coverage.out -o coverage.html
+
+# Run specific package tests
+go test ./internal/meta
+
 # Run with verbose output
 go test -v ./...
+
+# Run benchmarks
+go test -bench=. ./...
 ```
+
+### Coverage Requirements
+
+We maintain **>80% code coverage** for critical packages:
+
+- **Required**: All PRs should maintain or improve coverage
+- **Target**: 80%+ for application and domain logic
+- **Acceptable**: Lower coverage for CLI entry points and integration code
+
+**Check coverage before submitting PR:**
+```bash
+go test -cover ./...
+```
+
+Your PR will automatically report coverage changes via Codecov.
 
 ### Writing Tests
 
+**Table-Driven Tests** (Preferred)
 - Use table-driven tests for multiple test cases
 - Test both success and error cases
 - Mock external dependencies
 - Use descriptive test names
 
-Example:
+**Example:**
 
 ```go
 func TestParseFrontMatter(t *testing.T) {
@@ -160,6 +186,45 @@ func TestParseFrontMatter(t *testing.T) {
     }
 }
 ```
+
+### Benchmark Tests
+
+For performance-critical code, add benchmarks:
+
+```go
+func BenchmarkBuild(b *testing.B) {
+    // Setup
+    site := setupTestSite(b)
+    builder := NewSiteBuilder(site, fs, renderer)
+    
+    b.ResetTimer() // Reset timer after setup
+    
+    for i := 0; i < b.N; i++ {
+        builder.Build()
+    }
+}
+```
+
+**Run benchmarks:**
+```bash
+go test -bench=. -benchmem ./internal/application
+```
+
+### Test Organization
+
+- **Unit tests**: `*_test.go` alongside source files
+- **Benchmark tests**: `*_bench_test.go` for performance tests
+- **Mock implementations**: Define in same test package
+- **Test fixtures**: Use `t.TempDir()` for temporary files
+
+### Race Detection
+
+Always run race detector before submitting:
+```bash
+go test -race ./...
+```
+
+CI will automatically check for race conditions.
 
 ## Documentation
 
