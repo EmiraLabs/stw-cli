@@ -205,316 +205,347 @@ func TestNewSiteBuilder(t *testing.T) {
 	}
 }
 
-func TestSiteBuilder_Build_ParseError(t *testing.T) {
-	site := &domain.Site{
-		PagesDir:     "pages",
-		TemplatesDir: "templates",
-		AssetsDir:    "assets",
-		DistDir:      "dist",
-	}
-	fs := NewMockFileSystem()
-	renderer := NewMockTemplateRenderer()
-	renderer.parseError = errors.New("parse error")
-	builder := NewSiteBuilder(site, fs, renderer)
-
-	err := builder.Build()
-	if err == nil {
-		t.Errorf("Expected error from ParseFiles, but got: %v", err)
-	}
-}
-
-func TestSiteBuilder_Build_MkdirError(t *testing.T) {
-	site := &domain.Site{
-		PagesDir:     "pages",
-		TemplatesDir: "templates",
-		AssetsDir:    "assets",
-		DistDir:      "dist",
-	}
-	fs := NewMockFileSystem()
-	fs.mkdirError = errors.New("mkdir error")
-	renderer := NewMockTemplateRenderer()
-	builder := NewSiteBuilder(site, fs, renderer)
-
-	err := builder.Build()
-	if err == nil {
-		t.Errorf("Expected error from MkdirAll, but got: %v", err)
-	}
-}
-
-func TestSiteBuilder_Build_RemoveError(t *testing.T) {
-	site := &domain.Site{
-		PagesDir:     "pages",
-		TemplatesDir: "templates",
-		AssetsDir:    "assets",
-		DistDir:      "dist",
-	}
-	fs := NewMockFileSystem()
-	fs.removeError = errors.New("remove error")
-	renderer := NewMockTemplateRenderer()
-	builder := NewSiteBuilder(site, fs, renderer)
-
-	err := builder.Build()
-	if err == nil {
-		t.Errorf("Expected error from RemoveAll, but got: %v", err)
-	}
-}
-
 func TestSiteBuilder_Build(t *testing.T) {
-	site := &domain.Site{
-		PagesDir:         "pages",
-		TemplatesDir:     "templates",
-		AssetsDir:        "assets",
-		DistDir:          "dist",
-		EnableAutoReload: false,
-		Config:           map[string]interface{}{"test": "value"},
+	tests := []struct {
+		name        string
+		setupFS     func(*MockFileSystem)
+		setupRender func(*MockTemplateRenderer)
+		expectError bool
+		errorMsg    string
+		checkFunc   func(*testing.T, *MockFileSystem, *MockTemplateRenderer)
+	}{
+		{
+			name:        "Success",
+			setupFS:     func(fs *MockFileSystem) {},
+			setupRender: func(r *MockTemplateRenderer) {},
+			expectError: false,
+			checkFunc: func(t *testing.T, fs *MockFileSystem, r *MockTemplateRenderer) {
+				// Check that RemoveAll was called
+				if len(fs.removeCalls) != 1 || fs.removeCalls[0] != "dist" {
+					t.Error("RemoveAll not called correctly")
+				}
+				// Check MkdirAll for dist
+				if len(fs.mkdirCalls) < 1 || fs.mkdirCalls[0] != "dist" {
+					t.Error("MkdirAll for dist not called")
+				}
+				// Check ParseFiles
+				if len(r.parseFilesCalls) != 1 {
+					t.Error("ParseFiles not called")
+				}
+				// Check that pages were built
+				expectedCreates := []string{"dist/index.html", "dist/about/index.html", "dist/about/contact/index.html"}
+				for _, expected := range expectedCreates {
+					if !contains(fs.createCalls, expected) {
+						t.Errorf("Expected create call for %s", expected)
+					}
+				}
+				// Check assets copied
+				expectedAssetCreates := []string{"dist/assets/css/style.css", "dist/assets/js/app.js"}
+				for _, expected := range expectedAssetCreates {
+					if !contains(fs.createCalls, expected) {
+						t.Errorf("Expected create call for %s", expected)
+					}
+				}
+			},
+		},
+		{
+			name: "Parse Error",
+			setupFS: func(fs *MockFileSystem) {},
+			setupRender: func(r *MockTemplateRenderer) {
+				r.parseError = errors.New("parse error")
+			},
+			expectError: true,
+			errorMsg:    "parse error",
+		},
+		{
+			name: "Mkdir Error",
+			setupFS: func(fs *MockFileSystem) {
+				fs.mkdirError = errors.New("mkdir error")
+			},
+			setupRender: func(r *MockTemplateRenderer) {},
+			expectError: true,
+			errorMsg:    "mkdir error",
+		},
+		{
+			name: "Remove Error",
+			setupFS: func(fs *MockFileSystem) {
+				fs.removeError = errors.New("remove error")
+			},
+			setupRender: func(r *MockTemplateRenderer) {},
+			expectError: true,
+			errorMsg:    "remove error",
+		},
+		{
+			name: "No Pages",
+			setupFS: func(fs *MockFileSystem) {
+				fs.hasPages = false
+			},
+			setupRender: func(r *MockTemplateRenderer) {},
+			expectError: false,
+			checkFunc: func(t *testing.T, fs *MockFileSystem, r *MockTemplateRenderer) {
+				// Check that no pages were built
+				for _, call := range fs.createCalls {
+					if strings.HasPrefix(call, "dist/") && strings.HasSuffix(call, ".html") {
+						t.Errorf("Unexpected create call for page: %s", call)
+					}
+				}
+			},
+		},
 	}
-	fs := NewMockFileSystem()
-	renderer := NewMockTemplateRenderer()
-	builder := NewSiteBuilder(site, fs, renderer)
 
-	err := builder.Build()
-	if err != nil {
-		t.Errorf("Build failed: %v", err)
-	}
-
-	// Check that RemoveAll was called
-	if len(fs.removeCalls) != 1 || fs.removeCalls[0] != "dist" {
-		t.Error("RemoveAll not called correctly")
-	}
-
-	// Check MkdirAll for dist
-	if len(fs.mkdirCalls) < 1 || fs.mkdirCalls[0] != "dist" {
-		t.Error("MkdirAll for dist not called")
-	}
-
-	// Check ParseFiles
-	if len(renderer.parseFilesCalls) != 1 {
-		t.Error("ParseFiles not called")
-	}
-
-	// Check that pages were built
-	// Should have created dist/index.html, dist/about/index.html, etc.
-	expectedCreates := []string{"dist/index.html", "dist/about/index.html", "dist/about/contact/index.html"}
-	for _, expected := range expectedCreates {
-		found := false
-		for _, call := range fs.createCalls {
-			if call == expected {
-				found = true
-				break
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			site := &domain.Site{
+				PagesDir:         "pages",
+				TemplatesDir:     "templates",
+				AssetsDir:        "assets",
+				DistDir:          "dist",
+				EnableAutoReload: false,
+				Config:           map[string]interface{}{"test": "value"},
 			}
-		}
-		if !found {
-			t.Errorf("Expected create call for %s", expected)
-		}
-	}
-
-	// Check assets copied
-	expectedAssetCreates := []string{"dist/assets/css/style.css", "dist/assets/js/app.js"}
-	for _, expected := range expectedAssetCreates {
-		found := false
-		for _, call := range fs.createCalls {
-			if call == expected {
-				found = true
-				break
+			fs := NewMockFileSystem()
+			if tt.setupFS != nil {
+				tt.setupFS(fs)
 			}
-		}
-		if !found {
-			t.Errorf("Expected create call for %s", expected)
-		}
+			renderer := NewMockTemplateRenderer()
+			if tt.setupRender != nil {
+				tt.setupRender(renderer)
+			}
+			builder := NewSiteBuilder(site, fs, renderer)
+
+			err := builder.Build()
+
+			if tt.expectError {
+				if err == nil {
+					t.Error("Expected error, got nil")
+				} else if !strings.Contains(err.Error(), tt.errorMsg) {
+					t.Errorf("Expected error containing %q, got %q", tt.errorMsg, err.Error())
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Unexpected error: %v", err)
+				}
+				if tt.checkFunc != nil {
+					tt.checkFunc(t, fs, renderer)
+				}
+			}
+		})
 	}
 }
 
 func TestSiteBuilder_buildPages(t *testing.T) {
-	site := &domain.Site{DistDir: "dist", PagesDir: "pages", Config: map[string]interface{}{"test": "value"}}
-	fs := NewMockFileSystem()
-	renderer := NewMockTemplateRenderer()
-	builder := &SiteBuilder{site: site, fs: fs, renderer: renderer}
-	tmpl, _ := renderer.ParseFiles(filepath.Join("templates", domain.BaseTemplate))
-
-	err := builder.buildPages(tmpl, meta.Meta{})
-	if err != nil {
-		t.Errorf("buildPages failed: %v", err)
+	tests := []struct {
+		name        string
+		setupFS     func(*MockFileSystem)
+		setupRender func(*MockTemplateRenderer)
+		expectError bool
+		errorMsg    string
+	}{
+		{
+			name:        "Success",
+			setupFS:     func(fs *MockFileSystem) {},
+			setupRender: func(r *MockTemplateRenderer) {},
+			expectError: false,
+		},
+		{
+			name: "Mkdir Error",
+			setupFS: func(fs *MockFileSystem) {
+				fs.mkdirError = errors.New("mkdir error")
+			},
+			setupRender: func(r *MockTemplateRenderer) {},
+			expectError: true,
+			errorMsg:    "mkdir error",
+		},
+		{
+			name: "Execute Error",
+			setupFS: func(fs *MockFileSystem) {},
+			setupRender: func(r *MockTemplateRenderer) {
+				r.executeError = errors.New("execute error")
+			},
+			expectError: true,
+			errorMsg:    "execute error",
+		},
+		{
+			name: "Read Error",
+			setupFS: func(fs *MockFileSystem) {
+				fs.readError = errors.New("read error")
+			},
+			setupRender: func(r *MockTemplateRenderer) {},
+			expectError: true,
+			errorMsg:    "read error",
+		},
+		{
+			name: "Create Error",
+			setupFS: func(fs *MockFileSystem) {
+				fs.createError = errors.New("create error")
+			},
+			setupRender: func(r *MockTemplateRenderer) {},
+			expectError: true,
+			errorMsg:    "create error",
+		},
 	}
 
-	// Check directories created
-	expectedMkdirs := []string{"dist", "dist/about", "dist/about/contact"}
-	for _, expected := range expectedMkdirs {
-		found := false
-		for _, call := range fs.mkdirCalls {
-			if call == expected {
-				found = true
-				break
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			site := &domain.Site{DistDir: "dist", PagesDir: "pages", Config: map[string]interface{}{"test": "value"}}
+			fs := NewMockFileSystem()
+			if tt.setupFS != nil {
+				tt.setupFS(fs)
 			}
-		}
-		if !found {
-			t.Errorf("Expected mkdir for %s", expected)
-		}
-	}
-}
+			renderer := NewMockTemplateRenderer()
+			if tt.setupRender != nil {
+				tt.setupRender(renderer)
+			}
+			builder := &SiteBuilder{site: site, fs: fs, renderer: renderer}
+			renderer.ParseFiles(filepath.Join("templates", domain.BaseTemplate))
 
-func TestSiteBuilder_buildPages_MkdirError(t *testing.T) {
-	site := &domain.Site{DistDir: "dist", PagesDir: "pages", Config: map[string]interface{}{}}
-	fs := NewMockFileSystem()
-	fs.mkdirError = errors.New("mkdir error")
-	renderer := NewMockTemplateRenderer()
-	builder := &SiteBuilder{site: site, fs: fs, renderer: renderer}
-	tmpl, _ := renderer.ParseFiles(filepath.Join("templates", domain.BaseTemplate))
+			err := builder.buildPages(meta.Meta{})
 
-	err := builder.buildPages(tmpl, meta.Meta{})
-	if err == nil {
-		t.Errorf("Expected error from MkdirAll, but got: %v", err)
-	}
-}
-
-func TestSiteBuilder_buildPages_ExecuteError(t *testing.T) {
-	site := &domain.Site{DistDir: "dist", PagesDir: "pages", Config: map[string]interface{}{}}
-	fs := NewMockFileSystem()
-	renderer := NewMockTemplateRenderer()
-	renderer.executeError = errors.New("execute error")
-	builder := &SiteBuilder{site: site, fs: fs, renderer: renderer}
-	tmpl, _ := renderer.ParseFiles(filepath.Join("templates", domain.BaseTemplate))
-
-	err := builder.buildPages(tmpl, meta.Meta{})
-	if err == nil {
-		t.Errorf("Expected error from ExecuteTemplate, but got: %v", err)
-	}
-}
-
-func TestSiteBuilder_buildPages_ReadError(t *testing.T) {
-	site := &domain.Site{DistDir: "dist", PagesDir: "pages", Config: map[string]interface{}{}}
-	fs := NewMockFileSystem()
-	fs.readError = errors.New("read error")
-	renderer := NewMockTemplateRenderer()
-	builder := &SiteBuilder{site: site, fs: fs, renderer: renderer}
-	tmpl, _ := renderer.ParseFiles(filepath.Join("templates", domain.BaseTemplate))
-
-	err := builder.buildPages(tmpl, meta.Meta{})
-	if err == nil {
-		t.Errorf("Expected error from ReadFile, but got: %v", err)
-	}
-}
-
-func TestSiteBuilder_buildPages_CreateError(t *testing.T) {
-	site := &domain.Site{DistDir: "dist", PagesDir: "pages", Config: map[string]interface{}{}}
-	fs := NewMockFileSystem()
-	fs.createError = errors.New("create error")
-	renderer := NewMockTemplateRenderer()
-	builder := &SiteBuilder{site: site, fs: fs, renderer: renderer}
-	tmpl, _ := renderer.ParseFiles(filepath.Join("templates", domain.BaseTemplate))
-
-	err := builder.buildPages(tmpl, meta.Meta{})
-	if err == nil {
-		t.Errorf("Expected error from Create, but got: %v", err)
+			if tt.expectError {
+				if err == nil {
+					t.Error("Expected error, got nil")
+				} else if !strings.Contains(err.Error(), tt.errorMsg) {
+					t.Errorf("Expected error containing %q, got %q", tt.errorMsg, err.Error())
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Unexpected error: %v", err)
+				}
+				// Check directories created
+				expectedMkdirs := []string{"dist", "dist/about", "dist/about/contact"}
+				for _, expected := range expectedMkdirs {
+					if !contains(fs.mkdirCalls, expected) {
+						t.Errorf("Expected mkdir for %s", expected)
+					}
+				}
+			}
+		})
 	}
 }
 
 func TestSiteBuilder_copyAssets(t *testing.T) {
-	site := &domain.Site{DistDir: "dist", AssetsDir: "assets"}
-	fs := NewMockFileSystem()
-	builder := &SiteBuilder{site: site, fs: fs}
-
-	err := builder.copyAssets()
-	if err != nil {
-		t.Errorf("copyAssets failed: %v", err)
+	tests := []struct {
+		name        string
+		setupFS     func(*MockFileSystem)
+		expectError bool
+		errorMsg    string
+	}{
+		{
+			name:        "Success",
+			setupFS:     func(fs *MockFileSystem) {},
+			expectError: false,
+		},
+		{
+			name: "Create Error",
+			setupFS: func(fs *MockFileSystem) {
+				fs.createError = errors.New("create error")
+			},
+			expectError: true,
+			errorMsg:    "create error",
+		},
+		{
+			name: "Walk Error",
+			setupFS: func(fs *MockFileSystem) {
+				fs.walkError = errors.New("walk error")
+			},
+			expectError: true,
+			errorMsg:    "walk error",
+		},
 	}
 
-	// Check mkdir for assets
-	if !contains(fs.mkdirCalls, "dist/assets") {
-		t.Error("MkdirAll for dist/assets not called")
-	}
-	if !contains(fs.mkdirCalls, "dist/assets/css") {
-		t.Error("MkdirAll for dist/assets/css not called")
-	}
-	if !contains(fs.mkdirCalls, "dist/assets/js") {
-		t.Error("MkdirAll for dist/assets/js not called")
-	}
-}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			site := &domain.Site{DistDir: "dist", AssetsDir: "assets"}
+			fs := NewMockFileSystem()
+			if tt.setupFS != nil {
+				tt.setupFS(fs)
+			}
+			builder := &SiteBuilder{site: site, fs: fs}
 
-func TestSiteBuilder_copyAssets_Error(t *testing.T) {
-	site := &domain.Site{DistDir: "dist", AssetsDir: "assets"}
-	fs := NewMockFileSystem()
-	fs.createError = errors.New("create error")
-	builder := &SiteBuilder{site: site, fs: fs}
+			err := builder.copyAssets()
 
-	err := builder.copyAssets()
-	if err == nil {
-		t.Errorf("Expected error from copyFile, but got: %v", err)
-	}
-}
-
-func TestSiteBuilder_copyAssets_WalkError(t *testing.T) {
-	site := &domain.Site{DistDir: "dist", AssetsDir: "assets"}
-	fs := NewMockFileSystem()
-	fs.walkError = errors.New("walk error")
-	builder := &SiteBuilder{site: site, fs: fs}
-
-	err := builder.copyAssets()
-	if err == nil {
-		t.Errorf("Expected error from WalkDir, but got: %v", err)
-	}
-}
-
-func TestSiteBuilder_Build_NoPages(t *testing.T) {
-	site := &domain.Site{
-		PagesDir:     "pages",
-		TemplatesDir: "templates",
-		AssetsDir:    "assets",
-		DistDir:      "dist",
-	}
-	fs := NewMockFileSystem()
-	fs.hasPages = false
-	renderer := NewMockTemplateRenderer()
-	builder := NewSiteBuilder(site, fs, renderer)
-
-	err := builder.Build()
-	if err != nil {
-		t.Errorf("Build failed: %v", err)
-	}
-
-	// Check that no pages were built
-	// Should not have created any dist files from pages
-	for _, call := range fs.createCalls {
-		if strings.HasPrefix(call, "dist/") && strings.HasSuffix(call, ".html") {
-			t.Errorf("Unexpected create call for page: %s", call)
-		}
+			if tt.expectError {
+				if err == nil {
+					t.Error("Expected error, got nil")
+				} else if !strings.Contains(err.Error(), tt.errorMsg) {
+					t.Errorf("Expected error containing %q, got %q", tt.errorMsg, err.Error())
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Unexpected error: %v", err)
+				}
+				// Check mkdir for assets
+				expectedDirs := []string{"dist/assets", "dist/assets/css", "dist/assets/js"}
+				for _, dir := range expectedDirs {
+					if !contains(fs.mkdirCalls, dir) {
+						t.Errorf("MkdirAll for %s not called", dir)
+					}
+				}
+			}
+		})
 	}
 }
+
+
 
 func TestSiteBuilder_copyFile(t *testing.T) {
-	fs := NewMockFileSystem()
-	fs.files["src"] = []byte("test content")
-	builder := &SiteBuilder{fs: fs}
-
-	err := builder.copyFile("src", "dst")
-	if err != nil {
-		t.Errorf("copyFile failed: %v", err)
+	tests := []struct {
+		name        string
+		setupFS     func(*MockFileSystem)
+		expectError bool
+		errorMsg    string
+	}{
+		{
+			name: "Success",
+			setupFS: func(fs *MockFileSystem) {
+				fs.files["src"] = []byte("test content")
+			},
+			expectError: false,
+		},
+		{
+			name: "Read Error",
+			setupFS: func(fs *MockFileSystem) {
+				fs.readError = errors.New("read error")
+			},
+			expectError: true,
+			errorMsg:    "read error",
+		},
+		{
+			name: "Create Error",
+			setupFS: func(fs *MockFileSystem) {
+				fs.files["src"] = []byte("test content")
+				fs.createError = errors.New("create error")
+			},
+			expectError: true,
+			errorMsg:    "create error",
+		},
 	}
 
-	if !contains(fs.createCalls, "dst") {
-		t.Error("Create not called for dst")
-	}
-}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fs := NewMockFileSystem()
+			if tt.setupFS != nil {
+				tt.setupFS(fs)
+			}
+			builder := &SiteBuilder{fs: fs}
 
-func TestSiteBuilder_copyFile_ReadError(t *testing.T) {
-	fs := NewMockFileSystem()
-	fs.readError = errors.New("read error")
-	builder := &SiteBuilder{fs: fs}
+			err := builder.copyFile("src", "dst")
 
-	err := builder.copyFile("src", "dst")
-	if err == nil {
-		t.Errorf("Expected error from ReadFile, but got: %v", err)
-	}
-}
-
-func TestSiteBuilder_copyFile_CreateError(t *testing.T) {
-	fs := NewMockFileSystem()
-	fs.files["src"] = []byte("test content")
-	fs.createError = errors.New("create error")
-	builder := &SiteBuilder{fs: fs}
-
-	err := builder.copyFile("src", "dst")
-	if err == nil {
-		t.Errorf("Expected error from Create, but got: %v", err)
+			if tt.expectError {
+				if err == nil {
+					t.Error("Expected error, got nil")
+				} else if !strings.Contains(err.Error(), tt.errorMsg) {
+					t.Errorf("Expected error containing %q, got %q", tt.errorMsg, err.Error())
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Unexpected error: %v", err)
+				}
+				if !contains(fs.createCalls, "dst") {
+					t.Error("Create not called for dst")
+				}
+			}
+		})
 	}
 }
 
