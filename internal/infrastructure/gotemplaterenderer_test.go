@@ -34,9 +34,22 @@ func TestGoTemplateRenderer_ParseFiles(t *testing.T) {
 
 func TestGoTemplateRenderer_ParseFiles_Error(t *testing.T) {
 	renderer := &GoTemplateRenderer{}
+	
+	// Test file not found error
 	_, err := renderer.ParseFiles("nonexistent.html")
 	if err == nil {
-		t.Errorf("Expected error from ParseFiles, but got: %v", err)
+		t.Error("Expected error from ParseFiles for non-existent file, got nil")
+	}
+
+	// Test template parse error (invalid syntax)
+	tempDir := t.TempDir()
+	invalidTemplateFile := tempDir + "/invalid.html"
+	invalidContent := `{{.Title`  // Missing closing braces
+	os.WriteFile(invalidTemplateFile, []byte(invalidContent), 0644)
+	
+	_, err = renderer.ParseFiles(invalidTemplateFile)
+	if err == nil {
+		t.Error("Expected error from ParseFiles for invalid template syntax, got nil")
 	}
 }
 

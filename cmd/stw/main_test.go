@@ -327,3 +327,69 @@ title: Home
 		t.Errorf("Expected %s, got %s", expected, string(data))
 	}
 }
+
+func TestLoadConfig_MissingFile(t *testing.T) {
+	// Create a temp directory without config.yaml
+	tmpDir, err := os.MkdirTemp("", "stw-test-missing")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Change to temp dir
+	oldWd, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(oldWd)
+
+	// Test loading config when file doesn't exist
+	config, err := loadConfig()
+	if err != nil {
+		t.Fatalf("Expected no error for missing config, got: %v", err)
+	}
+
+	// Should return empty config map
+	if config == nil {
+		t.Error("Expected empty config map, got nil")
+	}
+	if len(config) != 0 {
+		t.Errorf("Expected empty config, got %d items", len(config))
+	}
+}
+
+func TestBuild_ConfigError(t *testing.T) {
+	// Create temp dir with invalid YAML config
+	tmpDir, err := os.MkdirTemp("", "stw-build-error-test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Create invalid config
+	invalidYAML := `
+navigations:
+  - title: "Home"
+    url: "/"
+    invalid: [unclosed
+`
+	configPath := tmpDir + "/config.yaml"
+	if err := os.WriteFile(configPath, []byte(invalidYAML), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Change to temp dir
+	oldWd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chdir(oldWd)
+
+	// Call build - should fail due to invalid YAML
+	err = build()
+	if err == nil {
+		t.Error("Expected error from build with invalid config, got nil")
+	}
+}
+

@@ -57,17 +57,17 @@
 				
 				<option value="file0">github.com/EmiraLabs/stw-cli/cmd/stw/init.go (1.7%)</option>
 				
-				<option value="file1">github.com/EmiraLabs/stw-cli/cmd/stw/main.go (49.0%)</option>
+				<option value="file1">github.com/EmiraLabs/stw-cli/cmd/stw/main.go (51.0%)</option>
 				
-				<option value="file2">github.com/EmiraLabs/stw-cli/internal/application/sitebuilder.go (85.9%)</option>
+				<option value="file2">github.com/EmiraLabs/stw-cli/internal/application/sitebuilder.go (87.3%)</option>
 				
-				<option value="file3">github.com/EmiraLabs/stw-cli/internal/application/siteserver.go (8.9%)</option>
+				<option value="file3">github.com/EmiraLabs/stw-cli/internal/application/siteserver.go (80.4%)</option>
 				
 				<option value="file4">github.com/EmiraLabs/stw-cli/internal/infrastructure/gotemplaterenderer.go (71.4%)</option>
 				
 				<option value="file5">github.com/EmiraLabs/stw-cli/internal/infrastructure/osfilesystem.go (100.0%)</option>
 				
-				<option value="file6">github.com/EmiraLabs/stw-cli/internal/meta/helpers.go (76.1%)</option>
+				<option value="file6">github.com/EmiraLabs/stw-cli/internal/meta/helpers.go (98.6%)</option>
 				
 				</select>
 			</div>
@@ -253,7 +253,7 @@ func loadConfig() (map[string]interface{}, error) <span class="cov8" title="1">{
 
 func build() error <span class="cov8" title="1">{
         config, err := loadConfig()
-        if err != nil </span><span class="cov0" title="0">{
+        if err != nil </span><span class="cov8" title="1">{
                 return err
         }</span>
 
@@ -371,7 +371,7 @@ func NewSiteBuilder(site *domain.Site, fs infrastructure.FileSystem, renderer in
 // Build builds the site
 func (sb *SiteBuilder) Build() error <span class="cov8" title="1">{
         // Remove and recreate dist dir
-        if err := sb.fs.RemoveAll(sb.site.DistDir); err != nil </span><span class="cov0" title="0">{
+        if err := sb.fs.RemoveAll(sb.site.DistDir); err != nil </span><span class="cov8" title="1">{
                 return err
         }</span>
         <span class="cov8" title="1">if err := sb.fs.MkdirAll(sb.site.DistDir, 0755); err != nil </span><span class="cov8" title="1">{
@@ -382,7 +382,7 @@ func (sb *SiteBuilder) Build() error <span class="cov8" title="1">{
         <span class="cov8" title="1">siteMeta := meta.LoadSiteMeta(sb.site.Config)
 
         // Parse templates
-        tmpl, err := sb.renderer.ParseFiles(
+        _, err := sb.renderer.ParseFiles(
                 filepath.Join(sb.site.TemplatesDir, domain.BaseTemplate),
                 filepath.Join(sb.site.TemplatesDir, domain.HeaderTemplateFile),
                 filepath.Join(sb.site.TemplatesDir, domain.FooterTemplateFile),
@@ -394,7 +394,7 @@ func (sb *SiteBuilder) Build() error <span class="cov8" title="1">{
         // Set the template in renderer if possible, but since interface, perhaps cast or change.
 
         // For simplicity, use the tmpl directly
-        <span class="cov8" title="1">if err := sb.buildPages(tmpl, siteMeta); err != nil </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if err := sb.buildPages(siteMeta); err != nil </span><span class="cov0" title="0">{
                 return err
         }</span>
         <span class="cov8" title="1">if err := sb.copyAssets(); err != nil </span><span class="cov0" title="0">{
@@ -404,7 +404,7 @@ func (sb *SiteBuilder) Build() error <span class="cov8" title="1">{
         <span class="cov8" title="1">return nil</span>
 }
 
-func (sb *SiteBuilder) buildPages(tmpl *template.Template, siteMeta meta.Meta) error <span class="cov8" title="1">{
+func (sb *SiteBuilder) buildPages(siteMeta meta.Meta) error <span class="cov8" title="1">{
         return sb.fs.WalkDir(sb.site.PagesDir, func(path string, d fs.DirEntry, err error) error </span><span class="cov8" title="1">{
                 if err != nil </span><span class="cov0" title="0">{
                         return err
@@ -481,7 +481,7 @@ func (sb *SiteBuilder) buildPages(tmpl *template.Template, siteMeta meta.Meta) e
                                 return err
                         }</span>
                         <span class="cov8" title="1">defer f.Close()
-                        return tmpl.ExecuteTemplate(f, domain.BaseTemplate, page)</span>
+                        return sb.renderer.ExecuteTemplate(f, domain.BaseTemplate, page)</span>
                 }
                 <span class="cov8" title="1">return nil</span>
         })
@@ -536,20 +536,20 @@ import (
         "github.com/EmiraLabs/stw-cli/internal/domain"
 )
 
-func convertToHTML(data interface{}) interface{} <span class="cov0" title="0">{
+func convertToHTML(data interface{}) interface{} <span class="cov8" title="1">{
         switch v := data.(type) </span>{
-        case string:<span class="cov0" title="0">
+        case string:<span class="cov8" title="1">
                 return template.HTML(v)</span>
-        case map[string]interface{}:<span class="cov0" title="0">
-                for key, val := range v </span><span class="cov0" title="0">{
+        case map[string]interface{}:<span class="cov8" title="1">
+                for key, val := range v </span><span class="cov8" title="1">{
                         v[key] = convertToHTML(val)
                 }</span>
-                <span class="cov0" title="0">return v</span>
-        case []interface{}:<span class="cov0" title="0">
-                for i, val := range v </span><span class="cov0" title="0">{
+                <span class="cov8" title="1">return v</span>
+        case []interface{}:<span class="cov8" title="1">
+                for i, val := range v </span><span class="cov8" title="1">{
                         v[i] = convertToHTML(val)
                 }</span>
-                <span class="cov0" title="0">return v</span>
+                <span class="cov8" title="1">return v</span>
         default:<span class="cov0" title="0">
                 return v</span>
         }
@@ -592,20 +592,20 @@ func NewSiteServer(site *domain.Site, builder SiteBuilderInterface, port string)
         }
 }</span>
 
-func (ss *SiteServer) reloadConfig() error <span class="cov0" title="0">{
+func (ss *SiteServer) reloadConfig() error <span class="cov8" title="1">{
         data, err := os.ReadFile(ss.site.ConfigPath)
-        if err != nil </span><span class="cov0" title="0">{
+        if err != nil </span><span class="cov8" title="1">{
                 if os.IsNotExist(err) </span><span class="cov0" title="0">{
                         ss.site.Config = map[string]interface{}{}
                         return nil
                 }</span>
-                <span class="cov0" title="0">return err</span>
+                <span class="cov8" title="1">return err</span>
         }
-        <span class="cov0" title="0">var config map[string]interface{}
-        if err := yaml.Unmarshal(data, &amp;config); err != nil </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">var config map[string]interface{}
+        if err := yaml.Unmarshal(data, &amp;config); err != nil </span><span class="cov8" title="1">{
                 return err
         }</span>
-        <span class="cov0" title="0">ss.site.Config = convertToHTML(config).(map[string]interface{})
+        <span class="cov8" title="1">ss.site.Config = convertToHTML(config).(map[string]interface{})
         return nil</span>
 }
 
@@ -616,22 +616,22 @@ func (ss *SiteServer) Serve() error <span class="cov8" title="1">{
         }</span>
 
         // Start file watcher if enabled
-        <span class="cov0" title="0">if ss.site.EnableAutoReload </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if ss.site.EnableAutoReload </span><span class="cov8" title="1">{
                 go ss.watchFiles()
         }</span>
 
         // Custom handler
-        <span class="cov0" title="0">mux := http.NewServeMux()
-        if ss.site.EnableAutoReload </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">mux := http.NewServeMux()
+        if ss.site.EnableAutoReload </span><span class="cov8" title="1">{
                 mux.HandleFunc("/__reload", ss.handleReload)
         }</span>
-        <span class="cov0" title="0">mux.Handle("/", http.FileServer(http.Dir(ss.site.DistDir)))
+        <span class="cov8" title="1">mux.Handle("/", http.FileServer(http.Dir(ss.site.DistDir)))
 
         log.Printf("Serving %s on http://localhost:%s", ss.site.DistDir, ss.port)
         return ss.server.ListenAndServe(":"+ss.port, mux)</span>
 }
 
-func (ss *SiteServer) handleReload(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
+func (ss *SiteServer) handleReload(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
         log.Printf("Client connected to /__reload")
         w.Header().Set("Content-Type", "text/event-stream")
         w.Header().Set("Cache-Control", "no-cache")
@@ -642,35 +642,39 @@ func (ss *SiteServer) handleReload(w http.ResponseWriter, r *http.Request) <span
         ss.clientsMu.Unlock()
 
         // Remove client on disconnect
-        defer func() </span><span class="cov0" title="0">{
+        defer func() </span><span class="cov8" title="1">{
                 ss.clientsMu.Lock()
                 delete(ss.clients, w)
                 ss.clientsMu.Unlock()
         }</span>()
 
+        <span class="cov8" title="1">ss.handleWebSocketMessages(w, r)</span>
+}
+
+func (ss *SiteServer) handleWebSocketMessages(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
         // Listen for reload events
-        <span class="cov0" title="0">for </span><span class="cov0" title="0">{
+        for </span><span class="cov8" title="1">{
                 select </span>{
-                case &lt;-ss.reloadCh:<span class="cov0" title="0">
+                case &lt;-ss.reloadCh:<span class="cov8" title="1">
                         log.Printf("Sending reload event to client")
                         if _, err := w.Write([]byte("data: reload\n\n")); err != nil </span><span class="cov0" title="0">{
                                 return
                         }</span>
-                        <span class="cov0" title="0">w.(http.Flusher).Flush()</span>
-                case &lt;-r.Context().Done():<span class="cov0" title="0">
+                        <span class="cov8" title="1">w.(http.Flusher).Flush()</span>
+                case &lt;-r.Context().Done():<span class="cov8" title="1">
                         return</span>
                 }
         }
 }
 
-func (ss *SiteServer) watchFiles() <span class="cov0" title="0">{
+func (ss *SiteServer) watchFiles() <span class="cov8" title="1">{
         watcher, err := ss.initWatcher()
         if err != nil </span><span class="cov0" title="0">{
                 log.Fatal(err)
         }</span>
-        <span class="cov0" title="0">defer watcher.Close()
+        <span class="cov8" title="1">defer watcher.Close()
 
-        for </span><span class="cov0" title="0">{
+        for </span><span class="cov8" title="1">{
                 select </span>{
                 case event, ok := &lt;-watcher.Events:<span class="cov0" title="0">
                         if !ok </span><span class="cov0" title="0">{
@@ -686,64 +690,64 @@ func (ss *SiteServer) watchFiles() <span class="cov0" title="0">{
         }
 }
 
-func (ss *SiteServer) initWatcher() (*fsnotify.Watcher, error) <span class="cov0" title="0">{
+func (ss *SiteServer) initWatcher() (*fsnotify.Watcher, error) <span class="cov8" title="1">{
         watcher, err := fsnotify.NewWatcher()
         if err != nil </span><span class="cov0" title="0">{
                 return nil, err
         }</span>
 
-        <span class="cov0" title="0">addDir := func(path string) error </span><span class="cov0" title="0">{
-                return filepath.WalkDir(path, func(p string, d fs.DirEntry, err error) error </span><span class="cov0" title="0">{
-                        if err != nil </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">addDir := func(path string) error </span><span class="cov8" title="1">{
+                return filepath.WalkDir(path, func(p string, d fs.DirEntry, err error) error </span><span class="cov8" title="1">{
+                        if err != nil </span><span class="cov8" title="1">{
                                 return err
                         }</span>
-                        <span class="cov0" title="0">if d.IsDir() </span><span class="cov0" title="0">{
+                        <span class="cov8" title="1">if d.IsDir() </span><span class="cov0" title="0">{
                                 return watcher.Add(p)
                         }</span>
-                        <span class="cov0" title="0">return nil</span>
+                        <span class="cov8" title="1">return nil</span>
                 })
         }
 
-        <span class="cov0" title="0">dirs := []string{ss.site.PagesDir, ss.site.TemplatesDir, ss.site.AssetsDir}
-        for _, dir := range dirs </span><span class="cov0" title="0">{
-                if err := addDir(dir); err != nil </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">dirs := []string{ss.site.PagesDir, ss.site.TemplatesDir, ss.site.AssetsDir}
+        for _, dir := range dirs </span><span class="cov8" title="1">{
+                if err := addDir(dir); err != nil </span><span class="cov8" title="1">{
                         log.Printf("Error watching %s: %v", dir, err)
                 }</span>
         }
 
         // Watch config file
-        <span class="cov0" title="0">if _, err := os.Stat(ss.site.ConfigPath); err == nil </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if _, err := os.Stat(ss.site.ConfigPath); err == nil </span><span class="cov0" title="0">{
                 if err := watcher.Add(ss.site.ConfigPath); err != nil </span><span class="cov0" title="0">{
                         log.Printf("Error watching %s: %v", ss.site.ConfigPath, err)
                 }</span>
         }
 
-        <span class="cov0" title="0">return watcher, nil</span>
+        <span class="cov8" title="1">return watcher, nil</span>
 }
 
-func (ss *SiteServer) handleFileEvent(event fsnotify.Event, watcher *fsnotify.Watcher) <span class="cov0" title="0">{
-        if event.Has(fsnotify.Write) || event.Has(fsnotify.Create) || event.Has(fsnotify.Remove) </span><span class="cov0" title="0">{
+func (ss *SiteServer) handleFileEvent(event fsnotify.Event, watcher *fsnotify.Watcher) <span class="cov8" title="1">{
+        if event.Has(fsnotify.Write) || event.Has(fsnotify.Create) || event.Has(fsnotify.Remove) </span><span class="cov8" title="1">{
                 // If a directory is created, add it to watch
-                if event.Has(fsnotify.Create) </span><span class="cov0" title="0">{
-                        if info, err := os.Stat(event.Name); err == nil &amp;&amp; info.IsDir() </span><span class="cov0" title="0">{
+                if event.Has(fsnotify.Create) </span><span class="cov8" title="1">{
+                        if info, err := os.Stat(event.Name); err == nil &amp;&amp; info.IsDir() </span><span class="cov8" title="1">{
                                 watcher.Add(event.Name)
                         }</span>
                         // If config file is created, add it to watch
-                        <span class="cov0" title="0">if event.Name == ss.site.ConfigPath </span><span class="cov0" title="0">{
+                        <span class="cov8" title="1">if event.Name == ss.site.ConfigPath </span><span class="cov0" title="0">{
                                 watcher.Add(event.Name)
                         }</span>
                 }
                 // If config file changed, reload config
-                <span class="cov0" title="0">if event.Name == ss.site.ConfigPath </span><span class="cov0" title="0">{
+                <span class="cov8" title="1">if event.Name == ss.site.ConfigPath </span><span class="cov8" title="1">{
                         if err := ss.reloadConfig(); err != nil </span><span class="cov0" title="0">{
                                 log.Printf("Config reload error: %v", err)
                                 return
                         }</span>
                 }
-                <span class="cov0" title="0">log.Printf("File changed: %s", event.Name)
+                <span class="cov8" title="1">log.Printf("File changed: %s", event.Name)
                 if err := ss.builder.Build(); err != nil </span><span class="cov0" title="0">{
                         log.Printf("Build error: %v", err)
-                }</span> else<span class="cov0" title="0"> {
+                }</span> else<span class="cov8" title="1"> {
                         ss.notifyClients()
                 }</span>
         }
@@ -755,7 +759,7 @@ func (ss *SiteServer) notifyClients() <span class="cov8" title="1">{
 
         log.Printf("Notifying %d clients", len(ss.clients))
         for client := range ss.clients </span><span class="cov8" title="1">{
-                if _, err := client.Write([]byte("data: reload\n\n")); err != nil </span><span class="cov0" title="0">{
+                if _, err := client.Write([]byte("data: reload\n\n")); err != nil </span><span class="cov8" title="1">{
                         delete(ss.clients, client)
                 }</span> else<span class="cov8" title="1"> {
                         client.(http.Flusher).Flush()
@@ -871,7 +875,7 @@ func (m *Meta) Validate(assetsDir string) error <span class="cov8" title="1">{
         if len(m.Title) &gt; 60 </span><span class="cov8" title="1">{
                 return fmt.Errorf("title exceeds 60 characters: %s", m.Title)
         }</span>
-        <span class="cov8" title="1">if len(m.Description) &gt; 160 </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if len(m.Description) &gt; 160 </span><span class="cov8" title="1">{
                 return fmt.Errorf("description exceeds 160 characters: %s", m.Description)
         }</span>
         <span class="cov8" title="1">if m.OgImage != "" </span><span class="cov8" title="1">{
@@ -891,37 +895,37 @@ func Merge(siteMeta, pageMeta Meta) Meta <span class="cov8" title="1">{
         if pageMeta.Title != "" </span><span class="cov8" title="1">{
                 merged.Title = pageMeta.Title
         }</span>
-        <span class="cov8" title="1">if pageMeta.Description != "" </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if pageMeta.Description != "" </span><span class="cov8" title="1">{
                 merged.Description = pageMeta.Description
         }</span>
-        <span class="cov8" title="1">if pageMeta.Canonical != "" </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if pageMeta.Canonical != "" </span><span class="cov8" title="1">{
                 merged.Canonical = pageMeta.Canonical
         }</span>
-        <span class="cov8" title="1">if pageMeta.Robots != "" </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if pageMeta.Robots != "" </span><span class="cov8" title="1">{
                 merged.Robots = pageMeta.Robots
         }</span>
         <span class="cov8" title="1">if pageMeta.Keywords != "" </span><span class="cov8" title="1">{
                 merged.Keywords = pageMeta.Keywords
         }</span>
-        <span class="cov8" title="1">if pageMeta.OgTitle != "" </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if pageMeta.OgTitle != "" </span><span class="cov8" title="1">{
                 merged.OgTitle = pageMeta.OgTitle
         }</span>
-        <span class="cov8" title="1">if pageMeta.OgDescription != "" </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if pageMeta.OgDescription != "" </span><span class="cov8" title="1">{
                 merged.OgDescription = pageMeta.OgDescription
         }</span>
-        <span class="cov8" title="1">if pageMeta.OgImage != "" </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if pageMeta.OgImage != "" </span><span class="cov8" title="1">{
                 merged.OgImage = pageMeta.OgImage
         }</span>
-        <span class="cov8" title="1">if pageMeta.TwitterTitle != "" </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if pageMeta.TwitterTitle != "" </span><span class="cov8" title="1">{
                 merged.TwitterTitle = pageMeta.TwitterTitle
         }</span>
-        <span class="cov8" title="1">if pageMeta.TwitterDescription != "" </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if pageMeta.TwitterDescription != "" </span><span class="cov8" title="1">{
                 merged.TwitterDescription = pageMeta.TwitterDescription
         }</span>
-        <span class="cov8" title="1">if pageMeta.TwitterImage != "" </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if pageMeta.TwitterImage != "" </span><span class="cov8" title="1">{
                 merged.TwitterImage = pageMeta.TwitterImage
         }</span>
-        <span class="cov8" title="1">if len(pageMeta.JsonLd) &gt; 0 </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if len(pageMeta.JsonLd) &gt; 0 </span><span class="cov8" title="1">{
                 merged.JsonLd = pageMeta.JsonLd
         }</span>
         <span class="cov8" title="1">return merged</span>
@@ -940,7 +944,7 @@ func parseYAMLFrontMatter(content string) (Meta, string, error) <span class="cov
                 return meta, content, fmt.Errorf("invalid YAML front matter: missing closing ---")
         }</span>
 
-        <span class="cov8" title="1">if err := yaml.Unmarshal([]byte(parts[1]), &amp;meta); err != nil </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if err := yaml.Unmarshal([]byte(parts[1]), &amp;meta); err != nil </span><span class="cov8" title="1">{
                 return meta, content, fmt.Errorf("failed to parse YAML front matter: %w", err)
         }</span>
 
@@ -978,15 +982,15 @@ func parseJSONFrontMatter(content string) (Meta, string, error) <span class="cov
 // Returns the parsed meta, the body content without front matter, and any error.
 func ParseFrontMatter(content string) (Meta, string, error) <span class="cov8" title="1">{
         // Try YAML front matter first
-        if meta, body, err := parseYAMLFrontMatter(content); err != nil </span><span class="cov0" title="0">{
+        if meta, body, err := parseYAMLFrontMatter(content); err != nil </span><span class="cov8" title="1">{
                 return Meta{}, content, err
-        }</span> else<span class="cov8" title="1"> if meta.Title != "" || meta.Description != "" || len(meta.JsonLd) &gt; 0 </span><span class="cov0" title="0">{
+        }</span> else<span class="cov8" title="1"> if meta.Title != "" || meta.Description != "" || len(meta.JsonLd) &gt; 0 </span><span class="cov8" title="1">{
                 // Check if we actually parsed something (not just empty front matter)
                 return meta, body, nil
         }</span>
 
         // Try JSON front matter
-        <span class="cov8" title="1">if meta, body, err := parseJSONFrontMatter(content); err != nil </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if meta, body, err := parseJSONFrontMatter(content); err != nil </span><span class="cov8" title="1">{
                 return Meta{}, content, err
         }</span> else<span class="cov8" title="1"> if meta.Title != "" || meta.Description != "" || len(meta.JsonLd) &gt; 0 </span><span class="cov8" title="1">{
                 // Check if we actually parsed something
@@ -994,7 +998,7 @@ func ParseFrontMatter(content string) (Meta, string, error) <span class="cov8" t
         }</span>
 
         // No front matter found, return content as-is
-        <span class="cov0" title="0">return Meta{}, content, nil</span>
+        <span class="cov8" title="1">return Meta{}, content, nil</span>
 }
 
 // LoadSiteMeta extracts site-wide meta configuration from the config map.

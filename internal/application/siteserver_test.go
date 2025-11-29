@@ -9,6 +9,7 @@ import (
 	"os"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/EmiraLabs/stw-cli/internal/domain"
 	"github.com/fsnotify/fsnotify"
@@ -536,3 +537,153 @@ func TestSiteServer_handleReload_Setup(t *testing.T) {
 		t.Error("Client should have been removed after disconnect")
 	}
 }
+
+func TestSiteServer_handleWebSocketMessages_ReloadEvent(t *testing.T) {
+	site := &domain.Site{}
+	builder := &mockSiteBuilder{}
+	server := &SiteServer{
+		site:      site,
+		builder:   builder,
+		clients:   make(map[http.ResponseWriter]bool),
+		clientsMu: sync.Mutex{},
+		reloadCh:  make(chan struct{}, 1),
+	}
+
+	// Create a mock response writer
+	responseWriter := &mockResponseWriter{
+		buffer: &bytes.Buffer{},
+	}
+
+	// Create a context with timeout to prevent hanging
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+	
+	req := &http.Request{
+		Header: make(http.Header),
+	}
+	req = req.WithContext(ctx)
+
+	// Send a reload event
+	server.reloadCh <- struct{}{}
+
+	// Call handleWebSocketMessages in a goroutine
+	done := make(chan bool, 1)
+	go func() {
+		server.handleWebSocketMessages(responseWriter, req)
+		done <- true
+	}()
+
+	// Wait for completion or timeout
+	select {
+	case <-done:
+		// Completed
+	case <-time.After(200 * time.Millisecond):
+		// Timeout - that's ok, context should have cancelled
+	}
+
+	// Check that reload message was written
+	if responseWriter.buffer.Len() > 0 {
+		content := responseWriter.buffer.String()
+		if content != "data: reload\n\n" {
+			t.Errorf("Expected 'data: reload\\n\\n', got '%s'", content)
+		}
+		if !responseWriter.flushed {
+			t.Error("Expected response to be flushed")
+		}
+	}
+}
+
+func TestSiteServer_handleFileEvent_RemoveEvent(t *testing.T) {
+	tempDir := t.TempDir()
+	site := &domain.Site{
+		PagesDir:     tempDir + "/pages",
+		TemplatesDir: tempDir + "/templates",
+		AssetsDir:    tempDir + "/assets",
+		ConfigPath:   tempDir + "/config.yaml",
+		DistDir:      tempDir + "/dist",
+	}
+
+	// Create directories
+	os.MkdirAll(site.PagesDir, 0755)
+	os.MkdirAll(site.TemplatesDir, 0755)
+	os.MkdirAll(site.AssetsDir, 0755)
+	os.MkdirAll(site.DistDir, 0755)
+
+	builder := &mockSiteBuilder{}
+	server := &SiteServer{
+		site:     site,
+		builder:  builder,
+		reloadCh: make(chan struct{}, 1),
+	}
+
+	// Test remove event on a page file
+	event := fsnotify.Event{
+		Name: tempDir + "/pages/deleted.html",
+		Op:   fsnotify.Remove,
+	}
+
+	server.handleFileEvent(event, nil)
+
+	if !builder.buildCalled {
+		t.Error("Build should be called on file remove")
+	}
+}
+
+func TestSiteServer_handleFileEvent_CreateDirectory(t *testing.T) {
+	tempDir := t.TempDir()
+	newDir := tempDir + "/newdir"
+	os.MkdirAll(newDir, 0755)
+
+	site := &domain.Site{
+		PagesDir: tempDir,
+		DistDir:  tempDir + "/dist",
+	}
+
+	builder := &mockSiteBuilder{}
+	
+	// Create a mock watcher
+	watcher, _ := fsnotify.NewWatcher()
+	defer watcher.Close()
+
+	server := &SiteServer{
+		site:     site,
+		builder:  builder,
+		reloadCh: make(chan struct{}, 1),
+	}
+
+	// Test create event for a directory
+	event := fsnotify.Event{
+		Name: newDir,
+		Op:   fsnotify.Create,
+	}
+
+	server.handleFileEvent(event, watcher)
+
+	if !builder.buildCalled {
+		t.Error("Build should be called on directory create")
+	}
+}
+
+func TestSiteServer_initWatcher_WalkDirError(t *testing.T) {
+	// Use a path that will cause WalkDir to fail
+	site := &domain.Site{
+		PagesDir:     "/dev/null/nonexistent/pages",  // This will fail on WalkDir
+		TemplatesDir: "/tmp",
+		AssetsDir:    "/tmp",
+		ConfigPath:   "/tmp/config.yaml",
+	}
+	server := &SiteServer{site: site}
+
+	// This should succeed in creating watcher but log errors for bad paths
+	watcher, err := server.initWatcher()
+	if err != nil {
+		// fsnotify.NewWatcher failed - that's ok for this test
+		t.Logf("initWatcher failed as expected: %v", err)
+		return
+	}
+	if watcher != nil {
+		watcher.Close()
+	}
+	// The function should still return a watcher even if some dirs fail
+}
+

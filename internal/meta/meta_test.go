@@ -99,11 +99,24 @@ func TestParseJSONFrontMatter(t *testing.T) {
 		t.Errorf("Expected unchanged body, got '%s'", body2)
 	}
 
+	// JSON front matter ending with } (no newline)
+	jsonContentNoNewline := `{"title": "JSON Title No NL", "description": "JSON Description No NL"}<body content without newline>`
+	meta3, body3, err3 := parseJSONFrontMatter(jsonContentNoNewline)
+	if err3 != nil {
+		t.Fatalf("parseJSONFrontMatter failed on JSON without newline: %v", err3)
+	}
+	if meta3.Title != "JSON Title No NL" {
+		t.Errorf("Expected title 'JSON Title No NL', got '%s'", meta3.Title)
+	}
+	if body3 != "<body content without newline>" {
+		t.Errorf("Expected body '<body content without newline>', got '%s'", body3)
+	}
+
 	// Invalid JSON front matter (missing closing })
 	invalidJSON := `{"title": "Test"
 <body>`
-	_, _, err3 := parseJSONFrontMatter(invalidJSON)
-	if err3 == nil {
+	_, _, err4 := parseJSONFrontMatter(invalidJSON)
+	if err4 == nil {
 		t.Error("Expected error for invalid JSON front matter")
 	}
 }
