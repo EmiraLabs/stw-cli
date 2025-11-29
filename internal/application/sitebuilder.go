@@ -42,7 +42,7 @@ func (sb *SiteBuilder) Build() error {
 	siteMeta := meta.LoadSiteMeta(sb.site.Config)
 
 	// Parse templates
-	tmpl, err := sb.renderer.ParseFiles(
+	_, err := sb.renderer.ParseFiles(
 		filepath.Join(sb.site.TemplatesDir, domain.BaseTemplate),
 		filepath.Join(sb.site.TemplatesDir, domain.HeaderTemplateFile),
 		filepath.Join(sb.site.TemplatesDir, domain.FooterTemplateFile),
@@ -54,7 +54,7 @@ func (sb *SiteBuilder) Build() error {
 	// Set the template in renderer if possible, but since interface, perhaps cast or change.
 
 	// For simplicity, use the tmpl directly
-	if err := sb.buildPages(tmpl, siteMeta); err != nil {
+	if err := sb.buildPages(siteMeta); err != nil {
 		return err
 	}
 	if err := sb.copyAssets(); err != nil {
@@ -64,7 +64,7 @@ func (sb *SiteBuilder) Build() error {
 	return nil
 }
 
-func (sb *SiteBuilder) buildPages(tmpl *template.Template, siteMeta meta.Meta) error {
+func (sb *SiteBuilder) buildPages(siteMeta meta.Meta) error {
 	return sb.fs.WalkDir(sb.site.PagesDir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -141,7 +141,7 @@ func (sb *SiteBuilder) buildPages(tmpl *template.Template, siteMeta meta.Meta) e
 				return err
 			}
 			defer f.Close()
-			return tmpl.ExecuteTemplate(f, domain.BaseTemplate, page)
+			return sb.renderer.ExecuteTemplate(f, domain.BaseTemplate, page)
 		}
 		return nil
 	})

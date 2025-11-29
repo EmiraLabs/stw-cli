@@ -3,4 +3,5 @@ pages
 templates
 dist
 coverage.out
-stw
+coverage.html
+/stw

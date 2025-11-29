@@ -1,0 +1,1046 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>stw: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">github.com/EmiraLabs/stw-cli/cmd/stw/init.go (1.7%)</option>
+				
+				<option value="file1">github.com/EmiraLabs/stw-cli/cmd/stw/main.go (51.0%)</option>
+				
+				<option value="file2">github.com/EmiraLabs/stw-cli/internal/application/sitebuilder.go (87.3%)</option>
+				
+				<option value="file3">github.com/EmiraLabs/stw-cli/internal/application/siteserver.go (80.4%)</option>
+				
+				<option value="file4">github.com/EmiraLabs/stw-cli/internal/infrastructure/gotemplaterenderer.go (71.4%)</option>
+				
+				<option value="file5">github.com/EmiraLabs/stw-cli/internal/infrastructure/osfilesystem.go (100.0%)</option>
+				
+				<option value="file6">github.com/EmiraLabs/stw-cli/internal/meta/helpers.go (98.6%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package main
+
+import (
+        "bufio"
+        "fmt"
+        "html/template"
+        "os"
+        "os/exec"
+        "path/filepath"
+        "strings"
+
+        "github.com/spf13/cobra"
+)
+
+var initCmd = &amp;cobra.Command{
+        Use:   "init [site-name]",
+        Short: "Initialize a new static site",
+        Long:  `Initialize a new static site by cloning the official template.`,
+        Args:  cobra.ExactArgs(1),
+        RunE: func(cmd *cobra.Command, args []string) error <span class="cov0" title="0">{
+                siteName := args[0]
+                withWrangler, _ := cmd.Flags().GetBool("wrangler")
+                
+                // Check if git is installed
+                if _, err := exec.LookPath("git"); err != nil </span><span class="cov0" title="0">{
+                        return fmt.Errorf("git is required to create a new site: %w", err)
+                }</span>
+
+                <span class="cov0" title="0">fmt.Printf("Creating new site '%s' from template...\n", siteName)
+
+                // Clone the repository
+                cloneCmd := exec.Command("git", "clone", "https://github.com/EmiraLabs/stw.git", siteName)
+                cloneCmd.Stdout = os.Stdout
+                cloneCmd.Stderr = os.Stderr
+                if err := cloneCmd.Run(); err != nil </span><span class="cov0" title="0">{
+                        return fmt.Errorf("failed to clone template: %w", err)
+                }</span>
+
+                // Remove .git directory to start fresh
+                <span class="cov0" title="0">if err := os.RemoveAll(filepath.Join(siteName, ".git")); err != nil </span><span class="cov0" title="0">{
+                        return fmt.Errorf("failed to remove .git directory: %w", err)
+                }</span>
+
+                <span class="cov0" title="0">fmt.Printf("\nSuccessfully created site '%s'\n", siteName)
+
+                if withWrangler </span><span class="cov0" title="0">{
+                        fmt.Println("\nInitializing Wrangler configuration...")
+                        
+                        reader := bufio.NewReader(os.Stdin)
+
+                        fmt.Print("Enter custom domain (e.g., yoursite.com): ")
+                        domain, _ := reader.ReadString('\n')
+                        domain = strings.TrimSpace(domain)
+                        if domain == "" </span><span class="cov0" title="0">{
+                                return fmt.Errorf("domain is required")
+                        }</span>
+
+                        <span class="cov0" title="0">wranglerPath := filepath.Join(siteName, "wrangler.json")
+                        // Read the template from wrangler.json in the new site
+                        templateData, err := os.ReadFile(wranglerPath)
+                        if err != nil </span><span class="cov0" title="0">{
+                                return fmt.Errorf("failed to read wrangler.json template: %w", err)
+                        }</span>
+
+                        // Parse and execute template
+                        <span class="cov0" title="0">tmpl, err := template.New("wrangler").Parse(string(templateData))
+                        if err != nil </span><span class="cov0" title="0">{
+                                return fmt.Errorf("failed to parse template: %w", err)
+                        }</span>
+
+                        <span class="cov0" title="0">var buf strings.Builder
+                        data := map[string]interface{}{
+                                "project_name": siteName,
+                                "domain":       domain,
+                        }
+
+                        if err := tmpl.Execute(&amp;buf, data); err != nil </span><span class="cov0" title="0">{
+                                return fmt.Errorf("failed to execute template: %w", err)
+                        }</span>
+
+                        // Write back to file
+                        <span class="cov0" title="0">if err := os.WriteFile(wranglerPath, []byte(buf.String()), 0644); err != nil </span><span class="cov0" title="0">{
+                                return fmt.Errorf("failed to update wrangler.json: %w", err)
+                        }</span>
+
+                        <span class="cov0" title="0">fmt.Println("wrangler.json updated successfully.")
+                        fmt.Println("")
+                        fmt.Println("Next steps for deployment:")
+                        fmt.Println("")
+                        fmt.Println("1. Authorize Cloudflare in GitHub:")
+                        fmt.Println("   - Go to your GitHub repository settings")
+                        fmt.Println("   - Navigate to 'Integrations' &gt; 'Applications'")
+                        fmt.Println("   - Find 'Cloudflare Pages' and click 'Configure'")
+                        fmt.Println("   - Select your repository and allow access")
+                        fmt.Println("")
+                        fmt.Println("2. Set up Pages in Cloudflare Dashboard:")
+                        fmt.Println("   - Go to Workers &amp; Pages page")
+                        fmt.Println("   - Click 'Create application'")
+                        fmt.Println("   - Select 'Pages' tab")
+                        fmt.Println("   - Select 'Connect to Git'")
+                        fmt.Println("   - Choose your repository and click 'Begin setup'")
+                        fmt.Println("")
+                        fmt.Println("3. Configure build settings:")
+                        fmt.Println("   - Build command: ./stw build")
+                        fmt.Println("   - Build output directory: dist")
+                        fmt.Println("   - Root directory: / (leave empty)")
+                        fmt.Println("")
+                        fmt.Println("4. Deploy automatically on every push to main branch!")</span>
+                }
+
+                <span class="cov0" title="0">fmt.Printf("To get started:\n  cd %s\n  stw serve\n", siteName)
+
+                return nil</span>
+        },
+}
+
+func init() <span class="cov8" title="1">{
+        initCmd.Flags().Bool("wrangler", false, "Initialize Wrangler configuration for Cloudflare deployment")
+}</span>
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package main
+
+import (
+        "html/template"
+        "log"
+        "os"
+
+        "github.com/spf13/cobra"
+        "gopkg.in/yaml.v3"
+
+        "github.com/EmiraLabs/stw-cli/internal/application"
+        "github.com/EmiraLabs/stw-cli/internal/domain"
+        "github.com/EmiraLabs/stw-cli/internal/infrastructure"
+)
+
+func convertToHTML(data interface{}) interface{} <span class="cov8" title="1">{
+        switch v := data.(type) </span>{
+        case string:<span class="cov8" title="1">
+                return template.HTML(v)</span>
+        case map[string]interface{}:<span class="cov8" title="1">
+                for key, val := range v </span><span class="cov8" title="1">{
+                        v[key] = convertToHTML(val)
+                }</span>
+                <span class="cov8" title="1">return v</span>
+        case []interface{}:<span class="cov8" title="1">
+                for i, val := range v </span><span class="cov8" title="1">{
+                        v[i] = convertToHTML(val)
+                }</span>
+                <span class="cov8" title="1">return v</span>
+        default:<span class="cov8" title="1">
+                return v</span>
+        }
+}
+
+func loadConfig() (map[string]interface{}, error) <span class="cov8" title="1">{
+        data, err := os.ReadFile("config.yaml")
+        if err != nil </span><span class="cov8" title="1">{
+                if os.IsNotExist(err) </span><span class="cov8" title="1">{
+                        return map[string]interface{}{}, nil // default empty config
+                }</span>
+                <span class="cov0" title="0">return nil, err</span>
+        }
+        <span class="cov8" title="1">var config map[string]interface{}
+        if err := yaml.Unmarshal(data, &amp;config); err != nil </span><span class="cov8" title="1">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">return convertToHTML(config).(map[string]interface{}), nil</span>
+}
+
+func build() error <span class="cov8" title="1">{
+        config, err := loadConfig()
+        if err != nil </span><span class="cov8" title="1">{
+                return err
+        }</span>
+
+        <span class="cov8" title="1">site := &amp;domain.Site{
+                PagesDir:         "pages",
+                TemplatesDir:     "templates",
+                AssetsDir:        "assets",
+                DistDir:          "dist",
+                EnableAutoReload: false,
+                Config:           config,
+                ConfigPath:       "config.yaml",
+        }
+
+        fs := &amp;infrastructure.OSFileSystem{}
+        renderer := &amp;infrastructure.GoTemplateRenderer{}
+
+        builder := application.NewSiteBuilder(site, fs, renderer)
+
+        return builder.Build()</span>
+}
+
+func serve(port string, watch bool) error <span class="cov0" title="0">{
+        config, err := loadConfig()
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov0" title="0">site := &amp;domain.Site{
+                PagesDir:         "pages",
+                TemplatesDir:     "templates",
+                AssetsDir:        "assets",
+                DistDir:          "dist",
+                EnableAutoReload: watch,
+                Config:           config,
+                ConfigPath:       "config.yaml",
+        }
+
+        fs := &amp;infrastructure.OSFileSystem{}
+        renderer := &amp;infrastructure.GoTemplateRenderer{}
+
+        builder := application.NewSiteBuilder(site, fs, renderer)
+
+        server := application.NewSiteServer(site, builder, port)
+        return server.Serve()</span>
+}
+
+func main() <span class="cov0" title="0">{
+        var rootCmd = &amp;cobra.Command{
+                Use:   "stw",
+                Short: "Static Web Generator",
+        }
+
+        var buildCmd = &amp;cobra.Command{
+                Use:   "build",
+                Short: "Build the static site",
+                RunE: func(cmd *cobra.Command, args []string) error </span><span class="cov0" title="0">{
+                        return build()
+                }</span>,
+        }
+
+        <span class="cov0" title="0">var serveCmd = &amp;cobra.Command{
+                Use:   "serve",
+                Short: "Build and serve the static site",
+                RunE: func(cmd *cobra.Command, args []string) error </span><span class="cov0" title="0">{
+                        port, _ := cmd.Flags().GetString("port")
+                        watch, _ := cmd.Flags().GetBool("watch")
+
+                        return serve(port, watch)
+                }</span>,
+        }
+
+        <span class="cov0" title="0">serveCmd.Flags().StringP("port", "p", "8080", "Port to serve on")
+        serveCmd.Flags().BoolP("watch", "w", true, "Enable auto-reload on file changes")
+
+        rootCmd.AddCommand(serveCmd)
+        rootCmd.AddCommand(buildCmd)
+        rootCmd.AddCommand(initCmd)
+
+        if err := rootCmd.Execute(); err != nil </span><span class="cov0" title="0">{
+                log.Fatal(err)
+        }</span>
+}
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package application
+
+import (
+        "bytes"
+        "html/template"
+        "io/fs"
+        "path/filepath"
+        "strings"
+
+        "github.com/EmiraLabs/stw-cli/internal/domain"
+        "github.com/EmiraLabs/stw-cli/internal/infrastructure"
+        "github.com/EmiraLabs/stw-cli/internal/meta"
+)
+
+// SiteBuilder handles building the static site
+type SiteBuilder struct {
+        site     *domain.Site
+        fs       infrastructure.FileSystem
+        renderer infrastructure.TemplateRenderer
+}
+
+// NewSiteBuilder creates a new SiteBuilder
+func NewSiteBuilder(site *domain.Site, fs infrastructure.FileSystem, renderer infrastructure.TemplateRenderer) *SiteBuilder <span class="cov8" title="1">{
+        return &amp;SiteBuilder{
+                site:     site,
+                fs:       fs,
+                renderer: renderer,
+        }
+}</span>
+
+// Build builds the site
+func (sb *SiteBuilder) Build() error <span class="cov8" title="1">{
+        // Remove and recreate dist dir
+        if err := sb.fs.RemoveAll(sb.site.DistDir); err != nil </span><span class="cov8" title="1">{
+                return err
+        }</span>
+        <span class="cov8" title="1">if err := sb.fs.MkdirAll(sb.site.DistDir, 0755); err != nil </span><span class="cov8" title="1">{
+                return err
+        }</span>
+
+        // Load site meta
+        <span class="cov8" title="1">siteMeta := meta.LoadSiteMeta(sb.site.Config)
+
+        // Parse templates
+        _, err := sb.renderer.ParseFiles(
+                filepath.Join(sb.site.TemplatesDir, domain.BaseTemplate),
+                filepath.Join(sb.site.TemplatesDir, domain.HeaderTemplateFile),
+                filepath.Join(sb.site.TemplatesDir, domain.FooterTemplateFile),
+                filepath.Join(sb.site.TemplatesDir, domain.HeadTemplateFile),
+        )
+        if err != nil </span><span class="cov8" title="1">{
+                return err
+        }</span>
+        // Set the template in renderer if possible, but since interface, perhaps cast or change.
+
+        // For simplicity, use the tmpl directly
+        <span class="cov8" title="1">if err := sb.buildPages(siteMeta); err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+        <span class="cov8" title="1">if err := sb.copyAssets(); err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov8" title="1">return nil</span>
+}
+
+func (sb *SiteBuilder) buildPages(siteMeta meta.Meta) error <span class="cov8" title="1">{
+        return sb.fs.WalkDir(sb.site.PagesDir, func(path string, d fs.DirEntry, err error) error </span><span class="cov8" title="1">{
+                if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+                <span class="cov8" title="1">if d.IsDir() </span><span class="cov0" title="0">{
+                        return nil
+                }</span>
+                <span class="cov8" title="1">if d.Name() == domain.IndexFile </span><span class="cov8" title="1">{
+                        rel, _ := filepath.Rel(sb.site.PagesDir, path)
+                        dst := filepath.Join(sb.site.DistDir, rel)
+                        if err := sb.fs.MkdirAll(filepath.Dir(dst), 0755); err != nil </span><span class="cov8" title="1">{
+                                return err
+                        }</span>
+
+                        <span class="cov8" title="1">var title string
+                        if rel == domain.IndexFile </span><span class="cov8" title="1">{
+                                title = "Home"
+                        }</span> else<span class="cov8" title="1"> {
+                                dir := filepath.Dir(rel)
+                                title = strings.Title(filepath.Base(dir))
+                        }</span>
+
+                        <span class="cov8" title="1">content, err := sb.fs.ReadFile(path)
+                        if err != nil </span><span class="cov8" title="1">{
+                                return err
+                        }</span>
+
+                        // Parse front matter
+                        <span class="cov8" title="1">pageMeta, body, err := meta.ParseFrontMatter(string(content))
+                        if err != nil </span><span class="cov0" title="0">{
+                                return err
+                        }</span>
+
+                        // Merge meta
+                        <span class="cov8" title="1">mergedMeta := meta.Merge(siteMeta, pageMeta)
+
+                        // Validate meta
+                        if err := mergedMeta.Validate(sb.site.AssetsDir); err != nil </span><span class="cov0" title="0">{
+                                return err
+                        }</span>
+
+                        // Parse page content as template
+                        <span class="cov8" title="1">pageTmpl, err := template.New("page").Parse(body)
+                        if err != nil </span><span class="cov0" title="0">{
+                                return err
+                        }</span>
+
+                        // Create page data without Content
+                        <span class="cov8" title="1">pageData := domain.Page{
+                                Title:  title,
+                                Path:   rel,
+                                IsDev:  sb.site.EnableAutoReload,
+                                Config: sb.site.Config,
+                                Meta:   mergedMeta,
+                        }
+
+                        // Execute page template
+                        var buf bytes.Buffer
+                        if err := pageTmpl.Execute(&amp;buf, pageData); err != nil </span><span class="cov0" title="0">{
+                                return err
+                        }</span>
+
+                        <span class="cov8" title="1">page := domain.Page{
+                                Title:   title,
+                                Content: template.HTML(buf.String()),
+                                Path:    rel,
+                                IsDev:   sb.site.EnableAutoReload,
+                                Config:  sb.site.Config,
+                                Meta:    mergedMeta,
+                        }
+
+                        f, err := sb.fs.Create(dst)
+                        if err != nil </span><span class="cov8" title="1">{
+                                return err
+                        }</span>
+                        <span class="cov8" title="1">defer f.Close()
+                        return sb.renderer.ExecuteTemplate(f, domain.BaseTemplate, page)</span>
+                }
+                <span class="cov8" title="1">return nil</span>
+        })
+}
+
+func (sb *SiteBuilder) copyAssets() error <span class="cov8" title="1">{
+        src := sb.site.AssetsDir
+        dst := filepath.Join(sb.site.DistDir, "assets")
+        return sb.fs.WalkDir(src, func(path string, d fs.DirEntry, err error) error </span><span class="cov8" title="1">{
+                if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+                <span class="cov8" title="1">rel, _ := filepath.Rel(src, path)
+                target := filepath.Join(dst, rel)
+                if d.IsDir() </span><span class="cov8" title="1">{
+                        return sb.fs.MkdirAll(target, 0755)
+                }</span>
+                <span class="cov8" title="1">return sb.copyFile(path, target)</span>
+        })
+}
+
+func (sb *SiteBuilder) copyFile(src, dst string) error <span class="cov8" title="1">{
+        content, err := sb.fs.ReadFile(src)
+        if err != nil </span><span class="cov8" title="1">{
+                return err
+        }</span>
+        <span class="cov8" title="1">f, err := sb.fs.Create(dst)
+        if err != nil </span><span class="cov8" title="1">{
+                return err
+        }</span>
+        <span class="cov8" title="1">defer f.Close()
+        _, err = f.Write(content)
+        return err</span>
+}
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">package application
+
+import (
+        "io/fs"
+        "log"
+        "net/http"
+        "os"
+        "path/filepath"
+        "sync"
+
+        "html/template"
+
+        "github.com/fsnotify/fsnotify"
+        "gopkg.in/yaml.v3"
+
+        "github.com/EmiraLabs/stw-cli/internal/domain"
+)
+
+func convertToHTML(data interface{}) interface{} <span class="cov8" title="1">{
+        switch v := data.(type) </span>{
+        case string:<span class="cov8" title="1">
+                return template.HTML(v)</span>
+        case map[string]interface{}:<span class="cov8" title="1">
+                for key, val := range v </span><span class="cov8" title="1">{
+                        v[key] = convertToHTML(val)
+                }</span>
+                <span class="cov8" title="1">return v</span>
+        case []interface{}:<span class="cov8" title="1">
+                for i, val := range v </span><span class="cov8" title="1">{
+                        v[i] = convertToHTML(val)
+                }</span>
+                <span class="cov8" title="1">return v</span>
+        default:<span class="cov0" title="0">
+                return v</span>
+        }
+}
+
+type SiteBuilderInterface interface {
+        Build() error
+}
+
+type HTTPServerInterface interface {
+        ListenAndServe(addr string, handler http.Handler) error
+}
+
+type DefaultHTTPServer struct{}
+
+func (d *DefaultHTTPServer) ListenAndServe(addr string, handler http.Handler) error <span class="cov0" title="0">{
+        return http.ListenAndServe(addr, handler)
+}</span>
+
+// SiteServer handles serving the static site
+type SiteServer struct {
+        site      *domain.Site
+        builder   SiteBuilderInterface
+        server    HTTPServerInterface
+        port      string
+        reloadCh  chan struct{}
+        clients   map[http.ResponseWriter]bool
+        clientsMu sync.Mutex
+}
+
+// NewSiteServer creates a new SiteServer
+func NewSiteServer(site *domain.Site, builder SiteBuilderInterface, port string) *SiteServer <span class="cov8" title="1">{
+        return &amp;SiteServer{
+                site:     site,
+                builder:  builder,
+                server:   &amp;DefaultHTTPServer{},
+                port:     port,
+                reloadCh: make(chan struct{}, 1),
+                clients:  make(map[http.ResponseWriter]bool),
+        }
+}</span>
+
+func (ss *SiteServer) reloadConfig() error <span class="cov8" title="1">{
+        data, err := os.ReadFile(ss.site.ConfigPath)
+        if err != nil </span><span class="cov8" title="1">{
+                if os.IsNotExist(err) </span><span class="cov0" title="0">{
+                        ss.site.Config = map[string]interface{}{}
+                        return nil
+                }</span>
+                <span class="cov8" title="1">return err</span>
+        }
+        <span class="cov8" title="1">var config map[string]interface{}
+        if err := yaml.Unmarshal(data, &amp;config); err != nil </span><span class="cov8" title="1">{
+                return err
+        }</span>
+        <span class="cov8" title="1">ss.site.Config = convertToHTML(config).(map[string]interface{})
+        return nil</span>
+}
+
+// Serve builds and serves the site
+func (ss *SiteServer) Serve() error <span class="cov8" title="1">{
+        if err := ss.builder.Build(); err != nil </span><span class="cov8" title="1">{
+                return err
+        }</span>
+
+        // Start file watcher if enabled
+        <span class="cov8" title="1">if ss.site.EnableAutoReload </span><span class="cov8" title="1">{
+                go ss.watchFiles()
+        }</span>
+
+        // Custom handler
+        <span class="cov8" title="1">mux := http.NewServeMux()
+        if ss.site.EnableAutoReload </span><span class="cov8" title="1">{
+                mux.HandleFunc("/__reload", ss.handleReload)
+        }</span>
+        <span class="cov8" title="1">mux.Handle("/", http.FileServer(http.Dir(ss.site.DistDir)))
+
+        log.Printf("Serving %s on http://localhost:%s", ss.site.DistDir, ss.port)
+        return ss.server.ListenAndServe(":"+ss.port, mux)</span>
+}
+
+func (ss *SiteServer) handleReload(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        log.Printf("Client connected to /__reload")
+        w.Header().Set("Content-Type", "text/event-stream")
+        w.Header().Set("Cache-Control", "no-cache")
+        w.Header().Set("Connection", "keep-alive")
+
+        ss.clientsMu.Lock()
+        ss.clients[w] = true
+        ss.clientsMu.Unlock()
+
+        // Remove client on disconnect
+        defer func() </span><span class="cov8" title="1">{
+                ss.clientsMu.Lock()
+                delete(ss.clients, w)
+                ss.clientsMu.Unlock()
+        }</span>()
+
+        <span class="cov8" title="1">ss.handleWebSocketMessages(w, r)</span>
+}
+
+func (ss *SiteServer) handleWebSocketMessages(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        // Listen for reload events
+        for </span><span class="cov8" title="1">{
+                select </span>{
+                case &lt;-ss.reloadCh:<span class="cov8" title="1">
+                        log.Printf("Sending reload event to client")
+                        if _, err := w.Write([]byte("data: reload\n\n")); err != nil </span><span class="cov0" title="0">{
+                                return
+                        }</span>
+                        <span class="cov8" title="1">w.(http.Flusher).Flush()</span>
+                case &lt;-r.Context().Done():<span class="cov8" title="1">
+                        return</span>
+                }
+        }
+}
+
+func (ss *SiteServer) watchFiles() <span class="cov8" title="1">{
+        watcher, err := ss.initWatcher()
+        if err != nil </span><span class="cov0" title="0">{
+                log.Fatal(err)
+        }</span>
+        <span class="cov8" title="1">defer watcher.Close()
+
+        for </span><span class="cov8" title="1">{
+                select </span>{
+                case event, ok := &lt;-watcher.Events:<span class="cov0" title="0">
+                        if !ok </span><span class="cov0" title="0">{
+                                return
+                        }</span>
+                        <span class="cov0" title="0">ss.handleFileEvent(event, watcher)</span>
+                case err, ok := &lt;-watcher.Errors:<span class="cov0" title="0">
+                        if !ok </span><span class="cov0" title="0">{
+                                return
+                        }</span>
+                        <span class="cov0" title="0">log.Printf("Watcher error: %v", err)</span>
+                }
+        }
+}
+
+func (ss *SiteServer) initWatcher() (*fsnotify.Watcher, error) <span class="cov8" title="1">{
+        watcher, err := fsnotify.NewWatcher()
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">addDir := func(path string) error </span><span class="cov8" title="1">{
+                return filepath.WalkDir(path, func(p string, d fs.DirEntry, err error) error </span><span class="cov8" title="1">{
+                        if err != nil </span><span class="cov8" title="1">{
+                                return err
+                        }</span>
+                        <span class="cov8" title="1">if d.IsDir() </span><span class="cov0" title="0">{
+                                return watcher.Add(p)
+                        }</span>
+                        <span class="cov8" title="1">return nil</span>
+                })
+        }
+
+        <span class="cov8" title="1">dirs := []string{ss.site.PagesDir, ss.site.TemplatesDir, ss.site.AssetsDir}
+        for _, dir := range dirs </span><span class="cov8" title="1">{
+                if err := addDir(dir); err != nil </span><span class="cov8" title="1">{
+                        log.Printf("Error watching %s: %v", dir, err)
+                }</span>
+        }
+
+        // Watch config file
+        <span class="cov8" title="1">if _, err := os.Stat(ss.site.ConfigPath); err == nil </span><span class="cov0" title="0">{
+                if err := watcher.Add(ss.site.ConfigPath); err != nil </span><span class="cov0" title="0">{
+                        log.Printf("Error watching %s: %v", ss.site.ConfigPath, err)
+                }</span>
+        }
+
+        <span class="cov8" title="1">return watcher, nil</span>
+}
+
+func (ss *SiteServer) handleFileEvent(event fsnotify.Event, watcher *fsnotify.Watcher) <span class="cov8" title="1">{
+        if event.Has(fsnotify.Write) || event.Has(fsnotify.Create) || event.Has(fsnotify.Remove) </span><span class="cov8" title="1">{
+                // If a directory is created, add it to watch
+                if event.Has(fsnotify.Create) </span><span class="cov8" title="1">{
+                        if info, err := os.Stat(event.Name); err == nil &amp;&amp; info.IsDir() </span><span class="cov8" title="1">{
+                                watcher.Add(event.Name)
+                        }</span>
+                        // If config file is created, add it to watch
+                        <span class="cov8" title="1">if event.Name == ss.site.ConfigPath </span><span class="cov0" title="0">{
+                                watcher.Add(event.Name)
+                        }</span>
+                }
+                // If config file changed, reload config
+                <span class="cov8" title="1">if event.Name == ss.site.ConfigPath </span><span class="cov8" title="1">{
+                        if err := ss.reloadConfig(); err != nil </span><span class="cov0" title="0">{
+                                log.Printf("Config reload error: %v", err)
+                                return
+                        }</span>
+                }
+                <span class="cov8" title="1">log.Printf("File changed: %s", event.Name)
+                if err := ss.builder.Build(); err != nil </span><span class="cov0" title="0">{
+                        log.Printf("Build error: %v", err)
+                }</span> else<span class="cov8" title="1"> {
+                        ss.notifyClients()
+                }</span>
+        }
+}
+
+func (ss *SiteServer) notifyClients() <span class="cov8" title="1">{
+        ss.clientsMu.Lock()
+        defer ss.clientsMu.Unlock()
+
+        log.Printf("Notifying %d clients", len(ss.clients))
+        for client := range ss.clients </span><span class="cov8" title="1">{
+                if _, err := client.Write([]byte("data: reload\n\n")); err != nil </span><span class="cov8" title="1">{
+                        delete(ss.clients, client)
+                }</span> else<span class="cov8" title="1"> {
+                        client.(http.Flusher).Flush()
+                }</span>
+        }
+}
+</pre>
+		
+		<pre class="file" id="file4" style="display: none">package infrastructure
+
+import (
+        "encoding/json"
+        "html/template"
+        "io"
+)
+
+// GoTemplateRenderer implements TemplateRenderer using html/template
+type GoTemplateRenderer struct {
+        tmpl *template.Template
+}
+
+// ParseFiles parses the named files into a template
+func (tr *GoTemplateRenderer) ParseFiles(filenames ...string) (*template.Template, error) <span class="cov8" title="1">{
+        funcMap := template.FuncMap{
+                "toJson": func(v interface{}) template.JS </span><span class="cov0" title="0">{
+                        b, _ := json.Marshal(v)
+                        return template.JS(b)
+                }</span>,
+        }
+        <span class="cov8" title="1">var err error
+        tr.tmpl, err = template.New("").Funcs(funcMap).ParseFiles(filenames...)
+        return tr.tmpl, err</span>
+}
+
+// ExecuteTemplate applies the template associated with t that has the given name to the specified data object
+func (tr *GoTemplateRenderer) ExecuteTemplate(wr io.Writer, name string, data interface{}) error <span class="cov8" title="1">{
+        return tr.tmpl.ExecuteTemplate(wr, name, data)
+}</span>
+</pre>
+		
+		<pre class="file" id="file5" style="display: none">package infrastructure
+
+import (
+        "io"
+        "io/fs"
+        "os"
+        "path/filepath"
+)
+
+// OSFileSystem implements FileSystem using os package
+type OSFileSystem struct{}
+
+// WalkDir walks the file tree rooted at root
+func (fs *OSFileSystem) WalkDir(root string, fn fs.WalkDirFunc) error <span class="cov8" title="1">{
+        return filepath.WalkDir(root, fn)
+}</span>
+
+// ReadFile reads the file named by filename and returns the contents
+func (fs *OSFileSystem) ReadFile(filename string) ([]byte, error) <span class="cov8" title="1">{
+        return os.ReadFile(filename)
+}</span>
+
+// Create creates the named file with mode 0666 (before umask), truncating it if it already exists
+func (fs *OSFileSystem) Create(filename string) (io.WriteCloser, error) <span class="cov8" title="1">{
+        return os.Create(filename)
+}</span>
+
+// MkdirAll creates a directory named path
+func (fs *OSFileSystem) MkdirAll(path string, perm fs.FileMode) error <span class="cov8" title="1">{
+        return os.MkdirAll(path, perm)
+}</span>
+
+// RemoveAll removes path and any children it contains
+func (fs *OSFileSystem) RemoveAll(path string) error <span class="cov8" title="1">{
+        return os.RemoveAll(path)
+}</span>
+</pre>
+		
+		<pre class="file" id="file6" style="display: none">// Package meta provides functionality for parsing, validating, and merging SEO metadata
+// for static site pages. It supports YAML front matter in page files and site-wide
+// defaults from configuration.
+package meta
+
+import (
+        "encoding/json"
+        "fmt"
+        "strings"
+
+        "gopkg.in/yaml.v3"
+)
+
+// Meta represents SEO metadata for a page, including standard meta tags,
+// Open Graph properties, Twitter Card data, and JSON-LD structured data.
+type Meta struct {
+        Title              string                 `yaml:"title" json:"title"`
+        Description        string                 `yaml:"description" json:"description"`
+        Canonical          string                 `yaml:"canonical" json:"canonical"`
+        Robots             string                 `yaml:"robots" json:"robots"`
+        Keywords           string                 `yaml:"keywords" json:"keywords"`
+        OgTitle            string                 `yaml:"og_title" json:"og_title"`
+        OgDescription      string                 `yaml:"og_description" json:"og_description"`
+        OgImage            string                 `yaml:"og_image" json:"og_image"`
+        TwitterTitle       string                 `yaml:"twitter_title" json:"twitter_title"`
+        TwitterDescription string                 `yaml:"twitter_description" json:"twitter_description"`
+        TwitterImage       string                 `yaml:"twitter_image" json:"twitter_image"`
+        JsonLd             map[string]interface{} `yaml:"jsonld" json:"jsonld"`
+}
+
+// Validate checks the meta fields for SEO best practices and constraints.
+// It ensures title and description lengths are within recommended limits,
+// and that Open Graph images are properly located under the assets directory.
+func (m *Meta) Validate(assetsDir string) error <span class="cov8" title="1">{
+        if len(m.Title) &gt; 60 </span><span class="cov8" title="1">{
+                return fmt.Errorf("title exceeds 60 characters: %s", m.Title)
+        }</span>
+        <span class="cov8" title="1">if len(m.Description) &gt; 160 </span><span class="cov8" title="1">{
+                return fmt.Errorf("description exceeds 160 characters: %s", m.Description)
+        }</span>
+        <span class="cov8" title="1">if m.OgImage != "" </span><span class="cov8" title="1">{
+                // Check if og_image exists under assets/
+                if !strings.HasPrefix(m.OgImage, "/assets/") </span><span class="cov8" title="1">{
+                        return fmt.Errorf("og_image must be under /assets/: %s", m.OgImage)
+                }</span>
+                // For now, assume it exists; in build, we can check file existence
+        }
+        <span class="cov8" title="1">return nil</span>
+}
+
+// Merge combines site-level default meta with page-specific overrides.
+// Page meta values take precedence when present (non-empty).
+func Merge(siteMeta, pageMeta Meta) Meta <span class="cov8" title="1">{
+        merged := siteMeta
+        if pageMeta.Title != "" </span><span class="cov8" title="1">{
+                merged.Title = pageMeta.Title
+        }</span>
+        <span class="cov8" title="1">if pageMeta.Description != "" </span><span class="cov8" title="1">{
+                merged.Description = pageMeta.Description
+        }</span>
+        <span class="cov8" title="1">if pageMeta.Canonical != "" </span><span class="cov8" title="1">{
+                merged.Canonical = pageMeta.Canonical
+        }</span>
+        <span class="cov8" title="1">if pageMeta.Robots != "" </span><span class="cov8" title="1">{
+                merged.Robots = pageMeta.Robots
+        }</span>
+        <span class="cov8" title="1">if pageMeta.Keywords != "" </span><span class="cov8" title="1">{
+                merged.Keywords = pageMeta.Keywords
+        }</span>
+        <span class="cov8" title="1">if pageMeta.OgTitle != "" </span><span class="cov8" title="1">{
+                merged.OgTitle = pageMeta.OgTitle
+        }</span>
+        <span class="cov8" title="1">if pageMeta.OgDescription != "" </span><span class="cov8" title="1">{
+                merged.OgDescription = pageMeta.OgDescription
+        }</span>
+        <span class="cov8" title="1">if pageMeta.OgImage != "" </span><span class="cov8" title="1">{
+                merged.OgImage = pageMeta.OgImage
+        }</span>
+        <span class="cov8" title="1">if pageMeta.TwitterTitle != "" </span><span class="cov8" title="1">{
+                merged.TwitterTitle = pageMeta.TwitterTitle
+        }</span>
+        <span class="cov8" title="1">if pageMeta.TwitterDescription != "" </span><span class="cov8" title="1">{
+                merged.TwitterDescription = pageMeta.TwitterDescription
+        }</span>
+        <span class="cov8" title="1">if pageMeta.TwitterImage != "" </span><span class="cov8" title="1">{
+                merged.TwitterImage = pageMeta.TwitterImage
+        }</span>
+        <span class="cov8" title="1">if len(pageMeta.JsonLd) &gt; 0 </span><span class="cov8" title="1">{
+                merged.JsonLd = pageMeta.JsonLd
+        }</span>
+        <span class="cov8" title="1">return merged</span>
+}
+
+// parseYAMLFrontMatter extracts and parses YAML front matter from content.
+// Returns the parsed meta, body content without front matter, and any error.
+func parseYAMLFrontMatter(content string) (Meta, string, error) <span class="cov8" title="1">{
+        var meta Meta
+        if !strings.HasPrefix(content, "---\n") </span><span class="cov8" title="1">{
+                return meta, content, nil // No YAML front matter found
+        }</span>
+
+        <span class="cov8" title="1">parts := strings.SplitN(content, "---\n", 3)
+        if len(parts) &lt; 3 </span><span class="cov8" title="1">{
+                return meta, content, fmt.Errorf("invalid YAML front matter: missing closing ---")
+        }</span>
+
+        <span class="cov8" title="1">if err := yaml.Unmarshal([]byte(parts[1]), &amp;meta); err != nil </span><span class="cov8" title="1">{
+                return meta, content, fmt.Errorf("failed to parse YAML front matter: %w", err)
+        }</span>
+
+        <span class="cov8" title="1">body := strings.TrimLeft(parts[2], "\n")
+        return meta, body, nil</span>
+}
+
+// parseJSONFrontMatter extracts and parses JSON front matter from content.
+// Returns the parsed meta, body content without front matter, and any error.
+func parseJSONFrontMatter(content string) (Meta, string, error) <span class="cov8" title="1">{
+        var meta Meta
+        if !strings.HasPrefix(content, "{\n") &amp;&amp; !strings.HasPrefix(content, "{") </span><span class="cov8" title="1">{
+                return meta, content, nil // No JSON front matter found
+        }</span>
+
+        <span class="cov8" title="1">end := strings.Index(content, "}\n")
+        if end == -1 </span><span class="cov8" title="1">{
+                end = strings.Index(content, "}")
+        }</span>
+        <span class="cov8" title="1">if end == -1 </span><span class="cov8" title="1">{
+                return meta, content, fmt.Errorf("invalid JSON front matter: missing closing }")
+        }</span>
+
+        <span class="cov8" title="1">jsonPart := content[:end+1]
+        if err := json.Unmarshal([]byte(jsonPart), &amp;meta); err != nil </span><span class="cov0" title="0">{
+                return meta, content, fmt.Errorf("failed to parse JSON front matter: %w", err)
+        }</span>
+
+        <span class="cov8" title="1">body := strings.TrimLeft(content[end+1:], "\n")
+        return meta, body, nil</span>
+}
+
+// ParseFrontMatter extracts YAML or JSON front matter from page content.
+// It tries YAML first, then JSON, and falls back to returning the content as-is.
+// Returns the parsed meta, the body content without front matter, and any error.
+func ParseFrontMatter(content string) (Meta, string, error) <span class="cov8" title="1">{
+        // Try YAML front matter first
+        if meta, body, err := parseYAMLFrontMatter(content); err != nil </span><span class="cov8" title="1">{
+                return Meta{}, content, err
+        }</span> else<span class="cov8" title="1"> if meta.Title != "" || meta.Description != "" || len(meta.JsonLd) &gt; 0 </span><span class="cov8" title="1">{
+                // Check if we actually parsed something (not just empty front matter)
+                return meta, body, nil
+        }</span>
+
+        // Try JSON front matter
+        <span class="cov8" title="1">if meta, body, err := parseJSONFrontMatter(content); err != nil </span><span class="cov8" title="1">{
+                return Meta{}, content, err
+        }</span> else<span class="cov8" title="1"> if meta.Title != "" || meta.Description != "" || len(meta.JsonLd) &gt; 0 </span><span class="cov8" title="1">{
+                // Check if we actually parsed something
+                return meta, body, nil
+        }</span>
+
+        // No front matter found, return content as-is
+        <span class="cov8" title="1">return Meta{}, content, nil</span>
+}
+
+// LoadSiteMeta extracts site-wide meta configuration from the config map.
+// It looks for a "meta" key in the configuration and unmarshals it into a Meta struct.
+func LoadSiteMeta(config map[string]interface{}) Meta <span class="cov8" title="1">{
+        var meta Meta
+        if metaData, ok := config["meta"].(map[string]interface{}); ok </span><span class="cov8" title="1">{
+                // Convert map to Meta
+                data, _ := yaml.Marshal(metaData)
+                yaml.Unmarshal(data, &amp;meta)
+        }</span>
+        <span class="cov8" title="1">return meta</span>
+}
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>
